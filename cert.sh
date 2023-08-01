@@ -62,9 +62,7 @@ apply_certificate() {
                 elif [ $domain_type -eq 3 ]; then
                     read -p "请输入泛域名: " wildcard_domain
                     validate_domain_format "$wildcard_domain" || continue
-                fi
-
-                if [ $domain_type -eq 4 ]; then
+                elif [ $domain_type -eq 4 ]; then
                     input_cloudflare_api
                     verify_cloudflare_api || continue
                 fi
