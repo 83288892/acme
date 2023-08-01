@@ -10,8 +10,7 @@ if ! command -v acme.sh >/dev/null 2>&1; then
 fi
 
 if ! command -v socat >/dev/null 2>&1; then
-  git clone https://github.com/socat-1.7.3.2/socat.git
-  cd socat && ./configure && make && make install
+  sudo apt install -y socat
 fi
 
 # 输入API密钥和邮箱  
@@ -44,6 +43,6 @@ if [ ! -d "/root/cert" ]; then
 fi
 
 # 拷贝证书并替换私钥文件名
-acme.sh --install-cert -d $main_domain --key-file "/root/cert/${main_domain}_private.key" --fullchain-file /root/cert/fullchain.cer --ecc
+acme.sh --install-cert -d $main_domain --key-file "/root/cert/${main_domain}_.key" --fullchain-file /root/cert/fullchain.cer --ecc
 
 echo -e "\033[1;32m证书已保存到/root/cert目录\033[0m"
