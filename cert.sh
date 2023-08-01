@@ -10,10 +10,19 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# 安装acme和socat
-echo -e "${GREEN}开始安装 acme 和 socat.${NC}"
-apt-get update
-apt-get install -y acme socat
+# 检查acme是否已安装
+if ! command -v acme.sh &> /dev/null; then
+    echo -e "${GREEN}acme未安装，开始安装 acme.${NC}"
+    apt-get update
+    apt-get install -y acme
+fi
+
+# 检查socat是否已安装
+if ! command -v socat &> /dev/null; then
+    echo -e "${GREEN}socat未安装，开始安装 socat.${NC}"
+    apt-get update
+    apt-get install -y socat
+fi
 
 # 获取Cloudflare密钥和邮箱
 echo -e "${GREEN}请输入Cloudflare邮箱和密钥.${NC}"
