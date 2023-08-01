@@ -12,39 +12,27 @@ command_exists() {
 
 # 函数：安装acme.sh（如果尚未安装）
 install_acme_sh() {
-  echo "正在安装acme.sh..."
-  curl https://get.acme.sh | sh
-  if [ "$?" -ne 0 ]; then
-    echo -e "${RED}acme.sh安装失败。${NC}"
-    exit 1
+  if ! command_exists acme.sh; then
+    echo "正在安装acme.sh..."
+    curl https://get.acme.sh | sh
+    if [ "$?" -ne 0 ]; then
+      echo -e "${RED}acme.sh安装失败。${NC}"
+      exit 1
+    fi
   fi
 }
 
-# 函数：自动安装所有依赖工具
+# 函数：自动安装依赖工具
 auto_install_dependencies() {
   echo "正在安装依赖工具：curl、sudo、socat..."
-  if ! command_exists curl; then
-    if command_exists apt-get; then
-      sudo apt-get update
-      sudo apt-get install -y curl
-    elif command_exists yum; then
-      sudo yum install -y curl
-    else
-      echo -e "${RED}无法自动安装依赖工具。请手动安装：curl、sudo、socat。${NC}"
-      exit 1
-    fi
-  fi
-
-  if ! command_exists sudo || ! command_exists socat; then
-    if command_exists apt-get; then
-      sudo apt-get update
-      sudo apt-get install -y sudo socat
-    elif command_exists yum; then
-      sudo yum install -y sudo socat
-    else
-      echo -e "${RED}无法自动安装依赖工具。请手动安装：sudo、socat。${NC}"
-      exit 1
-    fi
+  if command_exists apt-get; then
+    sudo apt-get update
+    sudo apt-get install -y curl sudo socat
+  elif command_exists yum; then
+    sudo yum install -y curl sudo socat
+  else
+    echo -e "${RED}无法自动安装依赖工具。请手动安装：curl、sudo、socat。${NC}"
+    exit 1
   fi
 
   install_acme_sh
@@ -53,17 +41,8 @@ auto_install_dependencies() {
 # 函数：检查是否安装了所有依赖
 check_dependencies() {
   echo "检查依赖..."
-  local dependencies=("curl" "sudo" "socat" "acme.sh")
-  local missing_deps=()
-  
-  for dep in "${dependencies[@]}"; do
-    if ! command_exists "$dep"; then
-      missing_deps+=("$dep")
-    fi
-  done
-
-  if [ ${#missing_deps[@]} -gt 0 ]; then
-    echo -e "${RED}以下依赖项未安装：${missing_deps[*]}。${NC}"
+  if ! command_exists curl || ! command_exists sudo || ! command_exists socat || ! command_exists acme.sh; then
+    echo -e "${RED}有一些依赖项未安装。${NC}"
     read -p "是否自动安装所有依赖工具？（y/n）: " auto_install_choice
     if [ "$auto_install_choice" = "y" ]; then
       auto_install_dependencies
