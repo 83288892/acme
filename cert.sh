@@ -18,8 +18,7 @@ else
     echo -e "${red}acme.sh 或 jq 工具未安装。${reset}"
 
     # 提示用户选择是否安装缺少的工具
-    echo "请选择操作："
-    PS3="请输入： "
+    PS3="请选择操作： "
     options=("安装 acme.sh 和 jq 工具" "退出脚本")
     select option in "${options[@]}"; do
         case $option in
