@@ -8,8 +8,8 @@
 1. 在服务器上运行以下命令，下载脚本：
 
    ```bash
-   curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh
-   chmod +x cert.sh
+curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh && chmod +x cert.sh && ./cert.sh
+
 运行脚本申请证书并复制到指定目录：
 
 bash
@@ -31,10 +31,5 @@ Copy code
 此脚本仅用于申请测试证书或个人使用，请勿将其用于生产环境。
 
 © 完美
-
-
-
-
-
 
 希望这个示例能帮助到您，如果您有其他问题或需要进一步的帮助，请随时告诉我。
