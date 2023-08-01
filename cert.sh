@@ -13,27 +13,30 @@ fi
 if command -v acme.sh &> /dev/null && command -v jq &> /dev/null; then
     echo -e "${green}acme.sh 和 jq 工具已经安装，开始申请证书...${reset}"
 else
-    echo "acme.sh 或 jq 工具未安装。"
+    echo -e "acme.sh 或 jq 工具未安装。"
 
     # 提示用户选择是否安装缺少的工具
-    PS3="请选择操作： "
-    options=("安装 acme.sh 和 jq 工具" "退出脚本")
-    select option in "${options[@]}"; do
-        case $option in
-            "安装 acme.sh 和 jq 工具")
-                apt-get update
-                apt-get install -y socat
-                curl https://get.acme.sh | sh
-                source ~/.bashrc
-                break
-                ;;
-            "退出脚本")
-                echo "已退出脚本。"
-                exit 1
-                ;;
-            *) echo "无效的选项，请重新选择。" ;;
-        esac
-    done
+    echo -e "${green}请选择操作：${reset}"
+    echo "  1. 安装 acme.sh 和 jq 工具"
+    echo "  2. 退出脚本"
+
+    read -p "#? " option
+    case $option in
+        1)
+            apt-get update
+            apt-get install -y socat
+            curl https://get.acme.sh | sh
+            source ~/.bashrc
+            ;;
+        2)
+            echo "已退出脚本。"
+            exit 1
+            ;;
+        *)
+            echo "无效的选项，请重新选择。"
+            exit 1
+            ;;
+    esac
 fi
 
 # 获取 Cloudflare API 密钥和邮箱
