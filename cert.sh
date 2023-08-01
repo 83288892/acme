@@ -52,6 +52,7 @@ apply_certificate() {
         echo -e "  [1]主域名"
         echo -e "  [2]单域名"
         echo -e "  [3]泛域名"
+        echo -e "  [4]配置 CF_Api 和 CF_Email"
         echo -e "  [5]退出脚本"
 
         read -p "请输入选项编号: " domain_type
@@ -67,6 +68,9 @@ apply_certificate() {
                 elif [ $domain_type -eq 3 ]; then
                     read -p "请输入泛域名: " wildcard_domain
                     validate_domain_format "$wildcard_domain" || continue
+                elif [ $domain_type -eq 4 ]; then
+                    input_cloudflare_api
+                    verify_cloudflare_api || continue
                 fi
 
                 # 申请证书
