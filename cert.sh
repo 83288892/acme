@@ -16,6 +16,13 @@ install_dependencies() {
     curl https://get.acme.sh | sh
 }
 
+# 函数：卸载 acme.sh 和 socat
+uninstall_acme() {
+    echo -e "${GREEN}正在卸载 acme.sh 和 socat，请稍等...${NC}"
+    acme.sh --uninstall
+    apt-get purge -y socat
+}
+
 # 函数：输入 Cloudflare API 密钥和邮箱
 input_cloudflare_api() {
     echo -e "${GREEN}请输入 Cloudflare API 密钥和电子邮件：${NC}"
@@ -45,7 +52,6 @@ apply_certificate() {
         echo -e "  [1]主域名"
         echo -e "  [2]单域名"
         echo -e "  [3]泛域名"
-        echo -e "  [4]配置 CF_Api 和 CF_Email"
         echo -e "  [5]退出脚本"
 
         read -p "请输入选项编号: " domain_type
@@ -61,9 +67,6 @@ apply_certificate() {
                 elif [ $domain_type -eq 3 ]; then
                     read -p "请输入泛域名: " wildcard_domain
                     validate_domain_format "$wildcard_domain" || continue
-                elif [ $domain_type -eq 4 ]; then
-                    input_cloudflare_api
-                    verify_cloudflare_api || continue
                 fi
 
                 # 申请证书
@@ -86,6 +89,15 @@ apply_certificate() {
                 ;;
         esac
     done
+}
+
+# 函数：卸载完整脚本并删除已下载的证书
+uninstall_script() {
+    echo -e "${GREEN}正在卸载脚本并删除已下载的证书，请稍等...${NC}"
+    acme.sh --uninstall
+    apt-get purge -y socat
+    rm -rf "$CERT_PATH"
+    echo -e "${GREEN}脚本已成功卸载并删除证书。${NC}"
 }
 
 # 函数：验证域名格式
@@ -161,8 +173,9 @@ main() {
         echo -e "${GREEN}请选择操作：${NC}"
         echo -e "  [1]安装依赖 acme.sh 和 socat"
         echo -e "  [2]申请证书"
-        echo -e "  [3]退出脚本"
-        echo -e "  [4]配置 CF_Api 和 CF_Email"
+        echo -e "  [3]卸载 acme.sh 和 socat"
+        echo -e "  [4]卸载脚本并删除证书"
+        echo -e "  [5]退出脚本"
 
         read -p "请输入选项编号: " menu_choice
 
@@ -175,12 +188,14 @@ main() {
                 apply_certificate
                 ;;
             3)
-                echo -e "${GREEN}退出脚本。${NC}"
-                exit 0
+                uninstall_acme
                 ;;
             4)
-                input_cloudflare_api
-                verify_cloudflare_api
+                uninstall_script
+                ;;
+            5)
+                echo -e "${GREEN}退出脚本。${NC}"
+                exit 0
                 ;;
             *)
                 echo -e "${RED}无效的选择，请重新输入。${NC}"
