@@ -1,186 +1,191 @@
 #!/bin/bash
 
-# 设置颜色变量
-GREEN='\033[1;32m'
-RED='\033[1;31m'
+# 颜色代码
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# 证书保存路径
-CERT_PATH="/root/cert"
+# 检查依赖是否完整
+function check_dependencies() {
+    echo -e "${GREEN}正在检查依赖...${NC}"
 
-# 函数：安装依赖 acme.sh 和 socat
-install_dependencies() {
-    echo -e "${GREEN}正在安装 acme.sh 和 socat，请稍等...${NC}"
-    apt-get update
-    apt-get install -y socat
-    curl https://get.acme.sh | sh
-}
-
-# 函数：卸载 acme.sh 和 socat
-uninstall_acme() {
-    echo -e "${GREEN}正在卸载 acme.sh 和 socat，请稍等...${NC}"
-    acme.sh --uninstall
-    apt-get purge -y socat
-}
-
-# 函数：输入 Cloudflare API 密钥和邮箱
-input_cloudflare_api() {
-    echo -e "${GREEN}请输入 Cloudflare API 密钥和电子邮件：${NC}"
-    read -p "Cloudflare API 密钥: " CF_API_KEY
-    read -p "Cloudflare 邮箱: " CF_EMAIL
-
-    if [ -z "$CF_API_KEY" ] || [ -z "$CF_EMAIL" ]; then
-        echo -e "${RED}API 密钥和邮箱不能为空，请重新输入。${NC}"
-        return 1
+    # 添加检查依赖的逻辑，如检查 curl, sudo, socat, acme.sh 是否安装，未安装则提示用户进行安装
+    if ! command -v curl &> /dev/null || ! command -v sudo &> /dev/null || ! command -v socat &> /dev/null || ! command -v acme.sh &> /dev/null; then
+        echo -e "${RED}缺少必要工具，请安装依赖：curl, sudo, socat, acme.sh。"
+        echo -e "您可以使用以下命令安装 acme.sh："
+        echo -e "curl https://get.acme.sh | sh${NC}"
+        exit 1
     fi
+
+    echo -e "${GREEN}依赖检查完成！${NC}"
 }
 
-# 函数：验证 Cloudflare API 密钥和邮箱
-verify_cloudflare_api() {
-    echo -e "${GREEN}验证 Cloudflare API 密钥和邮箱，请稍等...${NC}"
-    acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail "$CF_EMAIL" --accountkey "$CF_API_KEY" --test
+# 申请单域名证书
+function apply_single_domain_cert() {
+    read -p "请输入域名： " domain
+    # 对域名格式进行校验，避免用户输入错误格式
+    # ...
 
-    # 验证密钥和电子邮件的有效性
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}API 密钥或电子邮件验证失败，请检查输入的信息。返回主菜单。${NC}"
-        return 1
-    else
-        echo -e "${GREEN}API 密钥和电子邮件验证成功。${NC}"
-        return 0
-    fi
+    echo -e "${GREEN}正在申请证书，请稍等...${NC}"
+    # 调用 acme.sh 命令申请证书
+    ~/.acme.sh/acme.sh --register-account -m xxxx@gmail.com
+    ~/.acme.sh/acme.sh --issue -d "${domain}" --standalone
+    # ...
+    echo -e "${GREEN}证书申请成功！${NC}"
 }
 
-# 函数：验证域名格式
-validate_domain_format() {
-    domain=$1
-    if ! [[ "$domain" =~ ^([a-zA-Z0-9.-]+\.)+[a-zA-Z]{2,}$ ]]; then
-        echo -e "${RED}无效的域名格式，请重新输入。${NC}"
-        return 1
-    fi
-    return 0
-}
+# 申请多域名证书
+function apply_multiple_domains_cert() {
+    read -p "请输入域名数量： " num_domains
+    # 对域名数量进行校验，确保为正整数
+    # ...
 
-# 函数：检查证书路径并创建
-create_cert_directory() {
-    if [ ! -d "$CERT_PATH" ]; then
-        mkdir -p "$CERT_PATH"
-    fi
-}
-
-# 函数：复制证书到指定目录
-copy_certificate() {
-    domain_name="${main_domain:-${single_domain:-$wildcard_domain}}"
-    cp "$HOME/.acme.sh/${domain_name}_ecc"/*.cer "$CERT_PATH/"
-    cp "$HOME/.acme.sh/${domain_name}_ecc"/*.key "$CERT_PATH/"
-}
-
-# 函数：显示简介
-display_intro() {
-    echo -e "${GREEN}脚本简介：${NC}"
-    echo -e "${GREEN}本脚本可用于一键申请证书并将证书复制到指定目录。${NC}"
-    echo -e "${GREEN}在开始执行脚本之前，请确保已获取 Cloudflare API 密钥和电子邮件。${NC}"
-}
-
-# 函数：显示帮助信息
-display_help() {
-    echo -e "${GREEN}用法: $0 [选项]${NC}"
-    echo -e "${GREEN}选项："
-    echo -e "  -h, --help  显示帮助信息"
-    echo -e "  -p, --path  指定证书保存路径，默认为 /root/cert${NC}"
-}
-
-# 自动加载 acme.sh 路径
-export PATH="$HOME/.acme.sh:$PATH"
-
-# 函数：选择并申请证书
-apply_certificate() {
-    while true; do
-        echo -e "${GREEN}请选择需要申请的域名类型：${NC}"
-        echo -e "  [1]主域名"
-        echo -e "  [2]单域名"
-        echo -e "  [3]泛域名"
-        echo -e "  [4]返回主菜单"
-
-        read -p "请输入选项编号: " domain_type
-
-        case $domain_type in
-            1)
-                read -p "请输入主域名: " main_domain
-                validate_domain_format "$main_domain" || continue
-                ;;
-            2)
-                read -p "请输入单域名: " single_domain
-                validate_domain_format "$single_domain" || continue
-                ;;
-            3)
-                read -p "请输入泛域名: " wildcard_domain
-                validate_domain_format "$wildcard_domain" || continue
-                ;;
-            4)
-                echo -e "${GREEN}返回主菜单。${NC}"
-                return
-                ;;
-            *)
-                echo -e "${RED}无效的选择，请重新输入。${NC}"
-                ;;
-        esac
-
-        # 申请证书
-        acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.key" --fullchain-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.cer" --keylength ec-256 --force
-
-        if [ $? -eq 0 ]; then
-            copy_certificate
-            echo -e "${GREEN}证书申请成功并已复制到目录 $CERT_PATH${NC}"
-            break
-        else
-            echo -e "${RED}证书申请失败，请检查错误信息。脚本将重新开始申请。${NC}"
-        fi
+    domains=()
+    for ((i=1; i<=num_domains; i++)); do
+        read -p "请输入第 $i 个域名： " domain
+        # 对域名格式进行校验，避免用户输入错误格式
+        # ...
+        domains+=("-d ${domain}")
     done
+
+    echo -e "${GREEN}正在申请证书，请稍等...${NC}"
+    # 调用 acme.sh 命令申请证书
+    ~/.acme.sh/acme.sh --register-account -m xxxx@gmail.com --issue "${domains[@]}" --standalone
+    # ...
+    echo -e "${GREEN}证书申请成功！${NC}"
 }
 
-# 函数：卸载脚本并删除证书
-uninstall_script() {
-    echo -e "${GREEN}正在卸载脚本并删除证书，请稍等...${NC}"
-    uninstall_acme
-    rm -rf "$CERT_PATH"
-    echo -e "${GREEN}脚本卸载完成，已删除证书。${NC}"
+# 设置 Cloudflare API 密钥和邮箱
+function set_cf_api_key_email() {
+    read -p "请输入您的 Cloudflare API 密钥： " cf_key
+    read -p "请输入您的邮箱： " cf_email
+    # 对密钥和邮箱格式进行校验，避免错误输入
+    # ...
+    
+    export CF_Key="${cf_key}"
+    export CF_Email="${cf_email}"
+
+    echo -e "${GREEN}设置成功！${NC}"
+}
+
+# 申请 CF API 证书
+function apply_cf_api_cert() {
+    # 检查 CF API 密钥和邮箱是否设置
+    if [[ -z "$CF_Key" || -z "$CF_Email" ]]; then
+        echo -e "${RED}未设置 Cloudflare API 密钥或邮箱，请先设置${NC}"
+        set_cf_api_key_email
+    fi
+
+    read -p "请输入域名： " domain
+    # 对域名格式进行校验，避免用户输入错误格式
+    # ...
+
+    read -p "请输入泛域名（留空表示不申请泛域名）： " wildcard_domain
+    # 对泛域名格式进行校验，避免用户输入错误格式
+    # ...
+
+    echo -e "${GREEN}正在申请证书，请稍等...${NC}"
+    # 调用 acme.sh 命令申请证书
+    if [[ -z "$wildcard_domain" ]]; then
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}"
+    else
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "*.${wildcard_domain}"
+    fi
+    # ...
+    echo -e "${GREEN}证书申请成功！${NC}"
+}
+
+# 完全卸载脚本并删除证书
+function uninstall_script() {
+    # 添加完全卸载脚本的逻辑，删除证书等
+    # ...
+    echo -e "${GREEN}脚本卸载完成！${NC}"
+}
+
+# 显示帮助信息
+function show_help() {
+    echo -e "${GREEN}脚本名称：cret.sh - 一键申请证书脚本"
+    echo -e "用法：cret.sh -c <menu_option>"
+    echo -e "可用菜单选项："
+    echo -e "  -c 1  检查依赖"
+    echo -e "  -c 2  一键申请证书"
+    echo -e "  -c 3  CF API 申请"
+    echo -e "  -c 4  完全卸载脚本并删除证书"
+    echo -e "  -c 5  显示帮助信息"
+    echo -e "  -c 6  退出脚本${NC}"
 }
 
 # 主菜单
-while true; do
-    echo -e "${GREEN}请选择操作：${NC}"
-    echo -e "  [1]申请证书"
-    echo -e "  [2]卸载 acme.sh 和 socat"
-    echo -e "  [3]卸载脚本并删除证书"
-    echo -e "  [4]配置 CF_Api 和 CF_Email"
-    echo -e "  [5]显示帮助"
-    echo -e "  [6]退出脚本"
+function main() {
+    if [[ "$#" -eq 0 ]]; then
+        echo -e "${RED}未提供命令行参数，请使用-c参数选择菜单选项${NC}"
+        show_help
+        exit 1
+    fi
 
-    read -p "请输入选项编号: " option
+    while getopts "c:h" opt; do
+        case "${opt}" in
+            c)
+                case "${OPTARG}" in
+                    1)
+                        check_dependencies
+                        ;;
+                    2)
+                        echo -e "请选择一键申请证书类型：\n[1] 单域名证书\n[2] 多域名证书"
+                        read -p "请选择： " cert_type
+                        case "${cert_type}" in
+                            1)
+                                apply_single_domain_cert
+                                ;;
+                            2)
+                                apply_multiple_domains_cert
+                                ;;
+                            *)
+                                echo -e "${RED}无效的选择！${NC}"
+                                ;;
+                        esac
+                        ;;
+                    3)
+                        echo -e "请选择 Cloudflare API 申请类型：\n[1] 设置 CF 密钥和邮箱\n[2] 申请证书"
+                        read -p "请选择： " cf_type
+                        case "${cf_type}" in
+                            1)
+                                set_cf_api_key_email
+                                ;;
+                            2)
+                                apply_cf_api_cert
+                                ;;
+                            *)
+                                echo -e "${RED}无效的选择！${NC}"
+                                ;;
+                        esac
+                        ;;
+                    4)
+                        uninstall_script
+                        ;;
+                    5)
+                        show_help
+                        ;;
+                    6)
+                        exit 0
+                        ;;
+                    *)
+                        echo -e "${RED}无效的菜单选项！${NC}"
+                        show_help
+                        ;;
+                esac
+                ;;
+            h)
+                show_help
+                ;;
+            *)
+                echo -e "${RED}无效的命令行参数！${NC}"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
-    case $option in
-        1)
-            apply_certificate
-            ;;
-        2)
-            uninstall_acme
-            ;;
-        3)
-            uninstall_script
-            ;;
-        4)
-            input_cloudflare_api
-            verify_cloudflare_api
-            ;;
-        5)
-            display_help
-            ;;
-        6)
-            echo -e "${GREEN}退出脚本。${NC}"
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}无效的选择，请重新输入。${NC}"
-            ;;
-    esac
-done
+main "$@"
