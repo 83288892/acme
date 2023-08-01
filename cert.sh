@@ -12,13 +12,11 @@ command_exists() {
 
 # 函数：安装acme.sh（如果尚未安装）
 install_acme_sh() {
-  if ! command_exists acme.sh; then
-    echo "正在安装acme.sh..."
-    curl https://get.acme.sh | sh
-    if [ "$?" -ne 0 ]; then
-      echo -e "${RED}acme.sh安装失败。${NC}"
-      exit 1
-    fi
+  echo "正在安装acme.sh..."
+  curl https://get.acme.sh | sh
+  if [ "$?" -ne 0 ]; then
+    echo -e "${RED}acme.sh安装失败。${NC}"
+    exit 1
   fi
 }
 
@@ -55,8 +53,17 @@ auto_install_dependencies() {
 # 函数：检查是否安装了所有依赖
 check_dependencies() {
   echo "检查依赖..."
-  if ! command_exists curl || ! command_exists sudo || ! command_exists socat || ! command_exists acme.sh; then
-    echo -e "${RED}有一些依赖项未安装。${NC}"
+  local dependencies=("curl" "sudo" "socat" "acme.sh")
+  local missing_deps=()
+  
+  for dep in "${dependencies[@]}"; do
+    if ! command_exists "$dep"; then
+      missing_deps+=("$dep")
+    fi
+  done
+
+  if [ ${#missing_deps[@]} -gt 0 ]; then
+    echo -e "${RED}以下依赖项未安装：${missing_deps[*]}。${NC}"
     read -p "是否自动安装所有依赖工具？（y/n）: " auto_install_choice
     if [ "$auto_install_choice" = "y" ]; then
       auto_install_dependencies
