@@ -20,10 +20,7 @@ read -p "请输入Cloudflare 邮箱:" CF_Email
 # 配置并验证Cloudflare API
 export CF_Key="$CF_Key"
 export CF_Email="$CF_Email"
-if ! acme.sh --issue --dns dns_cf -d example.com -d "*.$main_domain" -k ec-256 --force; then
-  echo -e "\033[1;31mCloudflare API验证失败,请检查密钥和邮箱是否正确\033[0m"
-  exit 1
-fi
+
 
 # 输入域名
 read -p "请输入要申请证书的主域名:" main_domain
