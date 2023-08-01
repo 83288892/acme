@@ -13,9 +13,27 @@ fi
 if command -v acme.sh &> /dev/null && command -v socat &> /dev/null; then
     echo -e "${green}acme.sh 和 socat 工具已安装。${reset}"
 else
-    echo -e "${green}acme.sh 或 socat 未安装，请先安装这些工具。${reset}"
-    echo "请安装 acme.sh 和 socat 后再继续操作。"
-    exit 1
+    echo -e "${green}acme.sh 或 socat 未安装。${reset}"
+
+    # 提示用户选择是否安装 acme.sh 和 socat 工具
+    PS3="${green}请选择操作： ${reset}"
+    options=("安装 acme.sh 和 socat" "退出脚本")
+    select option in "${options[@]}"; do
+        case $option in
+            "安装 acme.sh 和 socat")
+                apt-get update
+                apt-get install -y socat
+                curl https://get.acme.sh | sh
+                source ~/.bashrc
+                break
+                ;;
+            "退出脚本")
+                echo -e "${green}已退出脚本。${reset}"
+                exit 1
+                ;;
+            *) echo -e "${green}无效的选项，请重新选择。${reset}" ;;
+        esac
+    done
 fi
 
 # 获取 Cloudflare API 密钥和邮箱
