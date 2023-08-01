@@ -39,8 +39,7 @@ check_domain() {
 check_cf_api() {
     # 使用curl命令发送请求到Cloudflare API，获取用户信息
     response=$(curl -s -X GET "https://api.cloudflare.com/client/v4/user" \
-        -H "X-Auth-Key: $CF_Key" \
-        -H "X-Auth-Email: $CF_Email" \
+        -H "Authorization: Bearer $CF_Key" \
         -H "Content-Type: application/json")
 
     # 使用jq命令解析返回的JSON数据，获取success字段的值
@@ -62,17 +61,17 @@ install_deps() {
     echo -e "${GREEN}正在检查依赖...${RESET}"
     if ! command -v curl &> /dev/null; then
         echo -e "${GREEN}正在安装curl...${RESET}"
-        apt update sudo && apt install curl -y || error "安装curl失败，请检查网络连接"
+        apt update && sudo apt install curl -y || error "安装curl失败，请检查网络连接"
     fi
 
     if ! command -v socat &> /dev/null; then
         echo -e "${GREEN}正在安装socat...${RESET}"
-        apt update sudo && apt install socat -y || error "安装socat失败，请检查网络连接"
+        apt update && sudo apt install socat -y || error "安装socat失败，请检查网络连接"
     fi
 
     if ! command -v jq &> /dev/null; then
         echo -e "${GREEN}正在安装jq...${RESET}"
-        apt update sudo && apt install jq -y || error "安装jq失败，请检查网络连接"
+        apt update && sudo apt install jq -y || error "安装jq失败，请检查网络连接"
     fi
 
     # 安装acme脚本 执行https://get.acme.sh | sh 完成后添加acme.sh到系统变量 
@@ -159,6 +158,7 @@ handle_choice() {
             ;;
     esac
 }
+
 # 安装依赖
 install_deps
 
@@ -188,4 +188,3 @@ while true; do
     read choice # 读取用户输入的选项
     handle_choice $choice # 调用handle_choice函数处理选项
 done
-
