@@ -1,62 +1,92 @@
 #!/bin/bash
 
-# 设置颜色变量
-GREEN='\033[1;32m'
-NC='\033[0m'
+# 设置文本颜色
+GREEN="\033[1;32m"
+NC="\033[0m"
 
-# 检查是否为root用户运行脚本
-if [[ $EUID -ne 0 ]]; then
-    echo -e "${GREEN}请使用root权限运行该脚本.${NC}"
+# 检查是否安装了acme和socat，如果没有则安装它们
+check_install_dependencies() {
+  echo -e "${GREEN}检查并安装依赖项...${NC}"
+  
+  if ! command -v acme.sh &> /dev/null; then
+    echo -e "${GREEN}正在安装acme.sh...${NC}"
+    curl https://get.acme.sh | sh
+    echo -e "${GREEN}acme.sh 安装成功.${NC}"
+  fi
+
+  if ! command -v socat &> /dev/null; then
+    echo -e "${GREEN}正在安装socat...${NC}"
+    # 根据你的包管理器更改安装命令，比如 apt, yum 等。
+    # 示例：Ubuntu/Debian的安装命令为：
+    sudo apt update
+    sudo apt install -y socat
+    echo -e "${GREEN}socat 安装成功.${NC}"
+  fi
+}
+
+# 配置Cloudflare API密钥和邮箱
+configure_cloudflare_credentials() {
+  echo -e "${GREEN}配置Cloudflare API密钥和邮箱...${NC}"
+  
+  read -p "请输入你的Cloudflare API密钥（可见）: " api_key
+  read -p "请输入你的Cloudflare邮箱（可见）: " email
+
+  # 设置Cloudflare API密钥和邮箱
+  echo "export CF_Key=\"$api_key\"" >> ~/.bashrc
+  echo "export CF_Email=\"$email\"" >> ~/.bashrc
+  
+  # 重新加载 .bashrc 以应用更改
+  source ~/.bashrc
+
+  # 验证Cloudflare API密钥和邮箱的有效性
+  if ! acme.sh --issue --dns dns_cf -d example.com -d '*.example.com'; then
+    echo -e "${GREEN}Cloudflare API密钥或邮箱验证失败。请检查你的凭据是否正确。${NC}"
     exit 1
-fi
+  fi
 
-# 检查acme是否已安装，如果未安装则安装acme
-if ! command -v acme.sh &> /dev/null; then
-    echo -e "${GREEN}未检测到acme，开始安装 acme.${NC}"
-    apt-get update
-    apt-get install -y acme
-fi
+  echo -e "${GREEN}Cloudflare API密钥和邮箱配置成功.${NC}"
+}
 
-# 检查socat是否已安装，如果未安装则安装socat
-if ! command -v socat &> /dev/null; then
-    echo -e "${GREEN}未检测到socat，开始安装 socat.${NC}"
-    apt-get update
-    apt-get install -y socat
-fi
+# 颁发证书
+issue_certificate() {
+  echo -e "${GREEN}颁发证书...${NC}"
+  
+  read -p "请输入你的域名: " domain
+  read -p "请输入1获取泛域名证书，或输入0获取单域名证书: " is_wildcard
 
-# 获取Cloudflare密钥和邮箱
-echo -e "${GREEN}请输入Cloudflare邮箱和密钥.${NC}"
-read -p "邮箱: " CF_EMAIL
-read -p "密钥: " CF_KEY
+  if [ "$is_wildcard" -eq "1" ]; then
+    acme.sh --issue --dns dns_cf -d "$domain" -d "*.$domain"
+  else
+    acme.sh --issue --dns dns_cf -d "$domain"
+  fi
 
-# 验证Cloudflare密钥和邮箱
-echo -e "${GREEN}验证Cloudflare密钥和邮箱.${NC}"
-if ! acme.sh --issue --dns dns_cf -d example.com -d '*.example.com' --keypath /root/.acme.sh/account.key --email "${CF_EMAIL}" --dns_cf_key "${CF_KEY}"; then
-    echo -e "${GREEN}Cloudflare密钥或邮箱验证失败，请检查输入是否正确.${NC}"
+  if [ "$?" -ne "0" ]; then
+    echo -e "${GREEN}证书颁发失败。退出脚本...${NC}"
     exit 1
-fi
+  fi
 
-# 输入域名和泛域名
-echo -e "${GREEN}请输入要申请证书的域名和泛域名（多个域名用空格分隔）.${NC}"
-read -p "域名: " DOMAIN
-read -p "泛域名: " WILDCARD_DOMAIN
+  echo -e "${GREEN}证书颁发成功.${NC}"
+}
 
-# 申请证书
-echo -e "${GREEN}开始申请证书.${NC}"
-if ! acme.sh --issue --dns dns_cf -d "${DOMAIN}" -d "*.${WILDCARD_DOMAIN}" --keypath /root/.acme.sh/account.key --email "${CF_EMAIL}" --dns_cf_key "${CF_KEY}"; then
-    echo -e "${GREEN}证书申请失败，请检查输入是否正确.${NC}"
-    exit 1
-fi
+# 复制证书到 /root/cert 目录
+copy_certificate() {
+  echo -e "${GREEN}复制证书到 /root/cert 目录...${NC}"
+  
+  if [ ! -d "/root/cert" ]; then
+    mkdir /root/cert
+  fi
+  
+  acme.sh --install-cert -d "$domain" --cert-file /root/cert/cert.pem --key-file /root/cert/key.pem --ca-file /root/cert/ca.pem --fullchain-file /root/cert/fullchain.pem
+  
+  echo -e "${GREEN}证书已成功复制到 /root/cert 目录.${NC}"
+}
 
-# 检查证书目录是否存在，如果不存在则创建
-CERT_DIR="/root/cert"
-if [ ! -d "$CERT_DIR" ]; then
-    echo -e "${GREEN}创建证书目录: $CERT_DIR.${NC}"
-    mkdir -p "$CERT_DIR"
-fi
+# 主要脚本
+echo -e "${GREEN}=== 一键DNS证书颁发工具 ===${NC}"
 
-# 复制证书到证书目录
-echo -e "${GREEN}复制证书到 $CERT_DIR 目录.${NC}"
-acme.sh --install-cert -d "${DOMAIN}" -d "*.${WILDCARD_DOMAIN}" --cert-file "$CERT_DIR/cert.pem" --key-file "$CERT_DIR/private.key" --fullchain-file "$CERT_DIR/fullchain.pem"
+check_install_dependencies
+configure_cloudflare_credentials
+issue_certificate
+copy_certificate
 
-echo -e "${GREEN}证书申请成功！证书已保存在 $CERT_DIR 目录.${NC}"
+echo -e "${GREEN}=== 证书颁发完成 ===${NC}"
