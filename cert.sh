@@ -9,15 +9,15 @@ else
     reset=''
 fi
 
-# 检查是否已安装 acme.sh 和 jq 工具
-if command -v acme.sh &> /dev/null && command -v jq &> /dev/null; then
-    echo -e "${green}acme.sh 和 jq 工具已经安装，开始申请证书...${reset}"
+# 检查是否已安装 acme.sh 和 socat
+if command -v acme.sh &> /dev/null && command -v socat &> /dev/null; then
+    echo -e "${green}acme.sh 和 socat 已经安装，开始申请证书...${reset}"
 else
-    echo -e "acme.sh 或 jq 工具未安装。"
+    echo -e "acme.sh 或 socat 未安装。"
 
     # 提示用户选择是否安装缺少的工具
     echo -e "${green}请选择操作：${reset}"
-    echo "  1. 安装 acme.sh 和 jq 工具"
+    echo "  1. 安装 acme.sh 和 socat"
     echo "  2. 退出脚本"
 
     read -p "#? " option
@@ -27,6 +27,7 @@ else
             apt-get install -y socat
             curl https://get.acme.sh | sh
             source ~/.bashrc
+            echo -e "${green}acme.sh 和 socat 工具已安装，并添加到环境变量。开始申请证书...${reset}"
             ;;
         2)
             echo "已退出脚本。"
