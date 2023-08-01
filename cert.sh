@@ -26,7 +26,7 @@ input_cloudflare_api() {
 # 函数：验证 Cloudflare API 密钥和邮箱
 verify_cloudflare_api() {
     echo -e "${GREEN}验证 Cloudflare API 密钥和邮箱，请稍等...${NC}"
-    acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail $CF_EMAIL --accountkey $CF_API_KEY --test
+    acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail "$CF_EMAIL" --accountkey "$CF_API_KEY" --test
 
     # 验证密钥和电子邮件的有效性
     if [ $? -ne 0 ]; then
@@ -45,10 +45,9 @@ apply_certificate() {
         echo -e "  [1]主域名"
         echo -e "  [2]单域名"
         echo -e "  [3]泛域名"
-        echo -e "  [4]重新配置 Cloudflare API 密钥和电子邮件"
+        echo -e "  [4]配置 CF_Api 和 CF_Email"
         echo -e "  [5]退出脚本"
 
-        read -r -t 0
         read -p "请输入选项编号: " domain_type
 
         case $domain_type in
@@ -68,7 +67,7 @@ apply_certificate() {
                 fi
 
                 # 申请证书
-                acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file $CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.key --fullchain-file $CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.cer --keylength ec-256 --force
+                acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.key" --fullchain-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.cer" --keylength ec-256 --force
 
                 if [ $? -eq 0 ]; then
                     copy_certificate
@@ -101,23 +100,23 @@ validate_domain_format() {
 
 # 函数：检查证书路径并创建
 create_cert_directory() {
-    if [ ! -d $CERT_PATH ]; then
-        mkdir -p $CERT_PATH
+    if [ ! -d "$CERT_PATH" ]; then
+        mkdir -p "$CERT_PATH"
     fi
 }
 
 # 函数：复制证书到指定目录
 copy_certificate() {
     domain_name="${main_domain:-${single_domain:-$wildcard_domain}}"
-    cp "$HOME/.acme.sh/$domain_name"_ecc/*.cer $CERT_PATH/
-    cp "$HOME/.acme.sh/$domain_name"_ecc/*.key $CERT_PATH/
+    cp "$HOME/.acme.sh/${domain_name}_ecc"/*.cer "$CERT_PATH/"
+    cp "$HOME/.acme.sh/${domain_name}_ecc"/*.key "$CERT_PATH/"
 }
 
 # 函数：显示简介
 display_intro() {
     echo -e "${GREEN}脚本简介：${NC}"
     echo -e "${GREEN}本脚本可用于一键申请证书并将证书复制到指定目录。${NC}"
-    echo -e "${GREEN}在开始执行脚本之前，请确保已获取Cloudflare API密钥和电子邮件。${NC}"
+    echo -e "${GREEN}在开始执行脚本之前，请确保已获取 Cloudflare API 密钥和电子邮件。${NC}"
 }
 
 # 函数：显示帮助信息
@@ -163,8 +162,8 @@ main() {
         echo -e "  [1]安装依赖 acme.sh 和 socat"
         echo -e "  [2]申请证书"
         echo -e "  [3]退出脚本"
+        echo -e "  [4]配置 CF_Api 和 CF_Email"
 
-        read -r -t 0
         read -p "请输入选项编号: " menu_choice
 
         case $menu_choice in
@@ -178,6 +177,10 @@ main() {
             3)
                 echo -e "${GREEN}退出脚本。${NC}"
                 exit 0
+                ;;
+            4)
+                input_cloudflare_api
+                verify_cloudflare_api
                 ;;
             *)
                 echo -e "${RED}无效的选择，请重新输入。${NC}"
