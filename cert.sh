@@ -25,14 +25,16 @@ install_acme_sh() {
 # 函数：自动安装依赖工具
 auto_install_dependencies() {
   echo "正在安装依赖工具：curl、sudo、socat..."
-  if command_exists apt-get; then
-    sudo apt-get update
-    sudo apt-get install -y curl sudo socat
-  elif command_exists yum; then
-    sudo yum install -y curl sudo socat
-  else
-    echo -e "${RED}无法自动安装依赖工具。请手动安装：curl、sudo、socat。${NC}"
-    exit 1
+  if ! command_exists curl || ! command_exists sudo || ! command_exists socat; then
+    if command_exists apt-get; then
+      sudo apt-get update
+      sudo apt-get install -y curl sudo socat
+    elif command_exists yum; then
+      sudo yum install -y curl sudo socat
+    else
+      echo -e "${RED}无法自动安装依赖工具。请手动安装：curl、sudo、socat。${NC}"
+      exit 1
+    fi
   fi
 
   install_acme_sh
