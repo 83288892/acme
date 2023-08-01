@@ -4,26 +4,29 @@
 GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 
-# 检查是否安装acme和socat
+# 加载 acme.sh 路径
+export PATH="/root/.acme.sh:$PATH"
+
+# 检查是否安装 acme 和 socat
 if ! command -v acme.sh &> /dev/null || ! command -v socat &> /dev/null; then
-    echo -e "${GREEN}正在安装acme.sh和socat...${NC}"
+    echo -e "${GREEN}正在安装 acme.sh 和 socat...${NC}"
     apt-get update
     apt-get install -y socat
     curl https://get.acme.sh | sh
 fi
 
-# 输入Cloudflare API密钥和邮箱
-echo -e "${GREEN}请输入Cloudflare API密钥和电子邮件：${NC}"
-read -p "Cloudflare API密钥: " CF_API_KEY
+# 输入 Cloudflare API 密钥和邮箱
+echo -e "${GREEN}请输入 Cloudflare API 密钥和电子邮件：${NC}"
+read -p "Cloudflare API 密钥: " CF_API_KEY
 read -p "Cloudflare 邮箱: " CF_EMAIL
 
-# 配置Cloudflare的API密钥和电子邮件
-echo -e "${GREEN}配置Cloudflare的API密钥和电子邮件...${NC}"
+# 配置 Cloudflare 的 API 密钥和电子邮件
+echo -e "${GREEN}配置 Cloudflare 的 API 密钥和电子邮件...${NC}"
 acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail $CF_EMAIL --accountkey $CF_API_KEY
 
 # 验证密钥和电子邮件的有效性
 if [ $? -ne 0 ]; then
-    echo -e "${GREEN}API密钥或电子邮件验证失败，请检查输入的信息。脚本将退出。${NC}"
+    echo -e "${GREEN}API 密钥或电子邮件验证失败，请检查输入的信息。脚本将退出。${NC}"
     exit 1
 fi
 
@@ -61,4 +64,4 @@ fi
 cp /root/.acme.sh/*.cer $cert_path/
 cp /root/.acme.sh/*.key $cert_path/
 
-echo -e "${GREEN}证书申请成功并已复制到目录$cert_path${NC}"
+echo -e "${GREEN}证书申请成功并已复制到目录 $cert_path${NC}"
