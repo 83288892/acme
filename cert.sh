@@ -34,19 +34,19 @@ fi
 echo -e "${GREEN}请输入需要申请的域名类型：${NC}"
 select domain_type in "主域名" "单域名" "泛域名"; do
     case $domain_type in
-        "主域名")
+        "主域名"
             read -p "请输入主域名: " main_domain
             acme.sh --issue --dns dns_cf -d $main_domain --key-file /root/cert/$main_domain.key --fullchain-file /root/cert/$main_domain.cer --keylength ec-256 --force
             ;;
-        "单域名")
+        "单域名"
             read -p "请输入单域名: " single_domain
             acme.sh --issue --dns dns_cf -d $single_domain --key-file /root/cert/$single_domain.key --fullchain-file /root/cert/$single_domain.cer --keylength ec-256 --force
             ;;
-        "泛域名")
+        "泛域名"
             read -p "请输入泛域名: " wildcard_domain
             acme.sh --issue --dns dns_cf -d "*.$wildcard_domain" --key-file /root/cert/$wildcard_domain.key --fullchain-file /root/cert/$wildcard_domain.cer --keylength ec-256 --force
             ;;
-        *)
+        *
             echo -e "${GREEN}无效的选择。脚本将退出。${NC}"
             exit 1
             ;;
@@ -61,7 +61,8 @@ if [ ! -d $cert_path ]; then
 fi
 
 # 复制证书到证书目录
-cp $HOME/.acme.sh/*.cer $cert_path/
-cp $HOME/.acme.sh/*.key $cert_path/
+domain_name="${main_domain:-${single_domain:-$wildcard_domain}}"
+cp "$HOME/.acme.sh/$domain_name"_ecc/*.cer $cert_path/
+cp "$HOME/.acme.sh/$domain_name"_ecc/*.key $cert_path/
 
 echo -e "${GREEN}证书申请成功并已复制到目录 $cert_path${NC}"
