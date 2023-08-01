@@ -7,7 +7,9 @@ echo -e "\033[1;32m开始安装所需工具\033[0m"
 if ! command -v acme.sh >/dev/null 2>&1; then
   echo -e "\033[1;33macme.sh未安装,开始安装acme.sh\033[0m"
   curl https://get.acme.sh | sh  
+  export PATH=$PATH:~/.acme.sh
 fi
+
 
 # 检查socat是否安装
 if ! command -v socat >/dev/null 2>&1; then
