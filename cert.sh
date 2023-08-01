@@ -178,8 +178,9 @@ main() {
         echo -e "  [1]安装依赖 acme.sh 和 socat"
         echo -e "  [2]申请证书"
         echo -e "  [3]卸载 acme.sh 和 socat"
-        echo -e "  [4]卸载脚本并删除证书"
-        echo -e "  [5]退出脚本"
+        echo -e "  [4]配置 CF_Api 和 CF_Email"
+        echo -e "  [5]卸载脚本并删除证书"
+        echo -e "  [6]退出脚本"
 
         read -p "请输入选项编号: " menu_choice
 
@@ -195,9 +196,13 @@ main() {
                 uninstall_acme
                 ;;
             4)
-                uninstall_script
+                input_cloudflare_api
+                verify_cloudflare_api
                 ;;
             5)
+                uninstall_script
+                ;;
+            6)
                 echo -e "${GREEN}退出脚本。${NC}"
                 exit 0
                 ;;
