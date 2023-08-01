@@ -5,7 +5,7 @@ GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 
 # 加载 acme.sh 路径
-export PATH="/root/.acme.sh:$PATH"
+export PATH="$HOME/.acme.sh:$PATH"
 
 # 检查是否安装 acme 和 socat
 if ! command -v acme.sh &> /dev/null || ! command -v socat &> /dev/null; then
