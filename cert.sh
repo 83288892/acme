@@ -36,28 +36,50 @@ configure_cloudflare_api() {
 
 # 函数：选择并申请证书
 apply_certificate() {
-    case $domain_type in
-        1)
-            read -p "请输入主域名: " main_domain
-            ;;
-        2)
-            read -p "请输入单域名: " single_domain
-            ;;
-        3)
-            read -p "请输入泛域名: " wildcard_domain
-            ;;
-        4)
-            echo -e "${GREEN}退出脚本。${NC}"
-            exit 0
-            ;;
-        *)
-            echo -e "${GREEN}无效的选择。脚本将退出。${NC}"
-            exit 1
-            ;;
-    esac
+    while true; do
+        echo -e "${GREEN}请选择需要申请的域名类型：${NC}"
+        echo -e "  [1]主域名"
+        echo -e "  [2]单域名"
+        echo -e "  [3]泛域名"
+        echo -e "  [4]重新配置 Cloudflare API 密钥和电子邮件"
+        echo -e "  [5]返回主菜单"
 
-    # 申请证书
-    acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.key --fullchain-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.cer --keylength ec-256 --force
+        read -r -t 0
+        read -p "请输入选项编号: " domain_type
+
+        case $domain_type in
+            1|2|3)
+                if [ $domain_type -eq 1 ]; then
+                    read -p "请输入主域名: " main_domain
+                elif [ $domain_type -eq 2 ]; then
+                    read -p "请输入单域名: " single_domain
+                elif [ $domain_type -eq 3 ]; then
+                    read -p "请输入泛域名: " wildcard_domain
+                fi
+                # 申请证书
+                acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.key --fullchain-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.cer --keylength ec-256 --force
+
+                if [ $? -eq 0 ]; then
+                    copy_certificate
+                    echo -e "${GREEN}证书申请成功并已复制到目录 $cert_path${NC}"
+                    break
+                else
+                    echo -e "${GREEN}证书申请失败，请检查错误信息。脚本将重新开始申请。${NC}"
+                fi
+                ;;
+            4)
+                input_cloudflare_api
+                configure_cloudflare_api
+                ;;
+            5)
+                echo -e "${GREEN}返回主菜单。${NC}"
+                break
+                ;;
+            *)
+                echo -e "${GREEN}无效的选择。${NC}"
+                ;;
+        esac
+    done
 }
 
 # 函数：检查证书路径并创建
@@ -75,38 +97,39 @@ copy_certificate() {
     cp "$HOME/.acme.sh/$domain_name"_ecc/*.key $cert_path/
 }
 
+# 函数：显示简介
+display_intro() {
+    echo -e "${GREEN}脚本简介："
+    echo -e "本脚本可用于一键申请证书并将证书复制到指定目录。"
+    echo -e "在开始执行脚本之前，请确保您已安装了acme.sh和socat，且已获取Cloudflare API密钥和电子邮件。${NC}"
+}
+
 # 主函数
 main() {
-    install_dependencies
-
-    input_cloudflare_api
-
-    configure_cloudflare_api
+    display_intro
 
     while true; do
-        echo -e "${GREEN}请选择需要申请的域名类型：${NC}"
-        echo -e "  [1]主域名"
-        echo -e "  [2]单域名"
-        echo -e "  [3]泛域名"
-        echo -e "  [4]退出脚本"
+        echo -e "${GREEN}请选择操作：${NC}"
+        echo -e "  [1]申请证书"
+        echo -e "  [2]退出脚本"
 
-        # 清空输入缓冲区
         read -r -t 0
-        # 读取选项编号
-        read -p "请输入选项编号: " domain_type
+        read -p "请输入选项编号: " menu_choice
 
-        echo -e "${GREEN}开始申请证书...${NC}"
-        create_cert_directory
-
-        apply_certificate
-
-        if [ $? -eq 0 ]; then
-            copy_certificate
-            echo -e "${GREEN}证书申请成功并已复制到目录 $cert_path${NC}"
-            break
-        else
-            echo -e "${GREEN}证书申请失败，请检查错误信息。脚本将重新开始申请。${NC}"
-        fi
+        case $menu_choice in
+            1)
+                input_cloudflare_api
+                configure_cloudflare_api
+                apply_certificate
+                ;;
+            2)
+                echo -e "${GREEN}退出脚本。${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${GREEN}无效的选择。${NC}"
+                ;;
+        esac
     done
 }
 
