@@ -31,15 +31,14 @@ configure_cloudflare_credentials() {
   read -p "请输入你的Cloudflare API密钥（可见）: " api_key
   read -p "请输入你的Cloudflare邮箱（可见）: " email
 
-  # 设置Cloudflare API密钥和邮箱
-  export CF_Key="$api_key"
-  export CF_Email="$email"
-
-  # 验证Cloudflare API密钥和邮箱的有效性
-  if ! acme.sh --issue --dns dns_cf -d example.com -d '*.example.com' --force; then
-    echo -e "${GREEN}Cloudflare API密钥或邮箱验证失败。请检查你的凭据是否正确。${NC}"
-    exit 1
-  fi
+  # 写入API密钥和邮箱到acme.sh的配置文件中
+  acme.sh --set-default-ca --server letsencrypt
+  acme.sh --set-default-ca --dns dns_cf
+  acme.sh --update-account-info --accountemail "$email"
+  acme.sh --register-account --accountkey "(stdin)"
+  acme.sh --set-key --accountkey "(stdin)" --accountemail "$email"
+  acme.sh --update-account-key --accountkey "(stdin)"
+  acme.sh --dns dns_cf --setdnssleep 60 --set-notify-mode 2 --set-cf-api-key "$api_key"
 
   echo -e "${GREEN}Cloudflare API密钥和邮箱配置成功.${NC}"
 }
