@@ -5,16 +5,17 @@
 
 ## 使用方法
 
-1. 在服务器上运行以下命令，下载脚本：
+1. 第一次使用 在服务器上运行以下命令，下载脚本：
 
    ```bash
-curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh && chmod +x cert.sh && ./cert.sh
+   curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh && chmod +x cert.sh && ./cert.sh
 
-运行脚本申请证书并复制到指定目录：
+再次运行脚本申请证书并复制到指定目录：
 
-bash
-Copy code
-./cert.sh
+           ```bash
+          ./cert.sh
+
+###
 按照提示输入 Cloudflare API 密钥、邮箱和申请证书的域名，然后等待脚本执行完成。
 
 如果证书申请成功，脚本会将证书文件复制到 /root/cert/ 目录下，并在控制台显示证书存放路径。
