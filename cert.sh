@@ -90,6 +90,9 @@ main() {
         echo -e "  [3]泛域名"
         echo -e "  [4]退出脚本"
 
+        # 清空输入缓冲区
+        read -r -t 0
+        # 读取选项编号
         read -p "请输入选项编号: " domain_type
 
         echo -e "${GREEN}开始申请证书...${NC}"
