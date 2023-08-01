@@ -22,27 +22,14 @@ if ! acme.sh --issue --dns dns_cf -d example.com -k ec-256 --force; then
   exit 1
 fi  
 
-# 选择证书类型
-read -p "请选择证书类型 (1: 单域名, 2: 泛域名): " cert_type
-
 # 输入域名
 read -p "请输入要申请证书的主域名:" main_domain
-
-if [ $cert_type -eq 2 ]; then
-  read -p "请输入要申请证书的泛域名:" sans_domain
-fi
+read -p "请输入要申请证书的泛域名:" sans_domain
 
 # 申请证书
-if [ $cert_type -eq 1 ]; then
-  if ! acme.sh --issue --dns dns_cf -d $main_domain --keylength ec-256 --force; then
-    echo -e "\033[1;31m证书申请失败\033[0m"
-    exit 1
-  fi
-else
-  if ! acme.sh --issue --dns dns_cf -d $main_domain -d "*.$main_domain" --keylength ec-256 --force; then
-    echo -e "\033[1;31m证书申请失败\033[0m"
-    exit 1
-  fi
+if ! acme.sh --issue --dns dns_cf -d $main_domain -d $sans_domain --keylength ec-256 --force; then
+  echo -e "\033[1;31m证书申请失败\033[0m"
+  exit 1
 fi
 
 echo -e "\033[1;32m证书申请成功\033[0m"
