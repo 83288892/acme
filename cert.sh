@@ -16,7 +16,7 @@ if [ ! -f "/root/.acme.sh/acme.sh" ]; then
   fi
 
 else
-  echo -e "\033[1;32macme.sh 已安装,开始申请证书...\033[0m"  
+  echo -e "\033[1;32macme.sh 已安装,开始申请证书...\033[0m"
 fi
 
 # 检查 socat 是否已安装
@@ -66,7 +66,7 @@ fi
 # 读取并申请证书 
 echo -e "\033[1;32m请输入要申请证书的域名:\033[0m"
 read -p "" domain
-if ! ~/.acme.sh/acme.sh --issue --dns dns_cf -d $domain --keylength ec-256 --pre-hook "systemctl stop nginx" --post-hook "systemctl restart nginx"; then
+if ! ~/.acme.sh/acme.sh --issue --dns dns_cf -d $domain --keylength ec-256; then
   echo -e "\033[1;31m证书申请失败,请重试!\033[0m"
   exit 1 
 else
@@ -78,5 +78,5 @@ cert_path="/root/cert"
 if [ ! -d "$cert_path" ]; then
   mkdir "$cert_path"
 fi 
-~/.acme.sh/acme.sh --install-cert -d $domain --cert-file $cert_path/cert.pem --key-file $cert_path/key.pem --fullchain-file $cert_path/fullchain.pem --reloadcmd "systemctl restart nginx"
+~/.acme.sh/acme.sh --install-cert -d $domain --key-file $cert_path/$domain.key --cert-file $cert_path/fullchain.cer
 echo -e "\033[1;32m证书已复制到 $cert_path 目录!\033[0m"
