@@ -22,15 +22,15 @@ input_cloudflare_api() {
     read -p "Cloudflare 邮箱: " CF_EMAIL
 }
 
-# 函数：配置 Cloudflare 的 API 密钥和电子邮件
-configure_cloudflare_api() {
-    echo -e "${GREEN}配置 Cloudflare 的 API 密钥和电子邮件...${NC}"
-    acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail $CF_EMAIL --accountkey $CF_API_KEY
+# 函数：验证 Cloudflare API 密钥和邮箱
+verify_cloudflare_api() {
+    echo -e "${GREEN}验证 Cloudflare API 密钥和邮箱...${NC}"
+    acme.sh --set-default-ca --server letsencrypt --dns dns_cf --accountemail $CF_EMAIL --accountkey $CF_API_KEY --test
 
     # 验证密钥和电子邮件的有效性
     if [ $? -ne 0 ]; then
-        echo -e "${GREEN}API 密钥或电子邮件验证失败，请检查输入的信息。脚本将退出。${NC}"
-        exit 1
+        echo -e "${GREEN}API 密钥或电子邮件验证失败，请检查输入的信息。返回主菜单。${NC}"
+        return 1
     fi
 }
 
@@ -56,6 +56,10 @@ apply_certificate() {
                 elif [ $domain_type -eq 3 ]; then
                     read -p "请输入泛域名: " wildcard_domain
                 fi
+
+                # 验证 Cloudflare API 密钥和邮箱
+                verify_cloudflare_api || return 1
+
                 # 申请证书
                 acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.key --fullchain-file $cert_path/${main_domain:-${single_domain:-$wildcard_domain}}.cer --keylength ec-256 --force
 
@@ -69,7 +73,7 @@ apply_certificate() {
                 ;;
             4)
                 input_cloudflare_api
-                configure_cloudflare_api
+                verify_cloudflare_api
                 ;;
             5)
                 echo -e "${GREEN}返回主菜单。${NC}"
@@ -100,8 +104,9 @@ copy_certificate() {
 # 函数：显示简介
 display_intro() {
     echo -e "${GREEN}脚本简介："
-    echo -e "本脚本可用于一键申请证书并将证书复制到指定目录。"
-    echo -e "在开始执行脚本之前，请确保您已安装了acme.sh和socat，且已获取Cloudflare API密钥和电子邮件。${NC}"
+    echo -e "本脚本可用于一键申请证书并将证书复制到/root/cert目录中。"
+    echo -e "在开始执行脚本之前，请确保您已安装了acme.sh和socat。"
+    echo -e "并且已经获取到Cloudflare API密钥和电子邮件。${NC}"
 }
 
 # 主函数
@@ -118,8 +123,6 @@ main() {
 
         case $menu_choice in
             1)
-                input_cloudflare_api
-                configure_cloudflare_api
                 apply_certificate
                 ;;
             2)
