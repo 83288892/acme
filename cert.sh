@@ -31,6 +31,9 @@ verify_cloudflare_api() {
     if [ $? -ne 0 ]; then
         echo -e "${GREEN}API 密钥或电子邮件验证失败，请检查输入的信息。返回主菜单。${NC}"
         return 1
+    else
+        echo -e "${GREEN}API 密钥和电子邮件验证成功。${NC}"
+        return 0
     fi
 }
 
@@ -41,8 +44,7 @@ apply_certificate() {
         echo -e "  [1]主域名"
         echo -e "  [2]单域名"
         echo -e "  [3]泛域名"
-        echo -e "  [4]重新配置 Cloudflare API 密钥和电子邮件"
-        echo -e "  [5]返回主菜单"
+        echo -e "  [4]返回主菜单"
 
         read -r -t 0
         read -p "请输入选项编号: " domain_type
@@ -72,10 +74,6 @@ apply_certificate() {
                 fi
                 ;;
             4)
-                input_cloudflare_api
-                verify_cloudflare_api
-                ;;
-            5)
                 echo -e "${GREEN}返回主菜单。${NC}"
                 break
                 ;;
@@ -103,11 +101,11 @@ copy_certificate() {
 
 # 函数：显示简介
 display_intro() {
-    echo -e "${GREEN}脚本简介："
-    echo -e "本脚本可用于一键申请证书并将证书复制到/root/cert目录中。"
-    echo -e "在开始执行脚本之前，请确保您已安装了acme.sh和socat。"
-    echo -e "并且已经获取到Cloudflare API密钥和电子邮件。${NC}"
+    echo -e "${GREEN}脚本简介：${NC}"
+    echo -e "${GREEN}本脚本可用于一键申请证书并将证书复制到指定目录。${NC}"
+    echo -e "${GREEN}在开始执行脚本之前，请确保您已安装了acme.sh和socat，且已获取Cloudflare API密钥和电子邮件。${NC}"
 }
+
 
 # 主函数
 main() {
@@ -123,6 +121,9 @@ main() {
 
         case $menu_choice in
             1)
+                input_cloudflare_api
+                verify_cloudflare_api || continue
+                create_cert_directory
                 apply_certificate
                 ;;
             2)
