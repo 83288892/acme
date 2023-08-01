@@ -45,65 +45,6 @@ verify_cloudflare_api() {
     fi
 }
 
-# 函数：选择并申请证书
-apply_certificate() {
-    while true; do
-        echo -e "${GREEN}请选择需要申请的域名类型：${NC}"
-        echo -e "  [1]主域名"
-        echo -e "  [2]单域名"
-        echo -e "  [3]泛域名"
-        echo -e "  [4]配置 CF_Api 和 CF_Email"
-        echo -e "  [5]退出脚本"
-
-        read -p "请输入选项编号: " domain_type
-
-        case $domain_type in
-            1|2|3)
-                if [ $domain_type -eq 1 ]; then
-                    read -p "请输入主域名: " main_domain
-                    validate_domain_format "$main_domain" || continue
-                elif [ $domain_type -eq 2 ]; then
-                    read -p "请输入单域名: " single_domain
-                    validate_domain_format "$single_domain" || continue
-                elif [ $domain_type -eq 3 ]; then
-                    read -p "请输入泛域名: " wildcard_domain
-                    validate_domain_format "$wildcard_domain" || continue
-                elif [ $domain_type -eq 4 ]; then
-                    input_cloudflare_api
-                    verify_cloudflare_api || continue
-                fi
-
-                # 申请证书
-                acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.key" --fullchain-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.cer" --keylength ec-256 --force
-
-                if [ $? -eq 0 ]; then
-                    copy_certificate
-                    echo -e "${GREEN}证书申请成功并已复制到目录 $CERT_PATH${NC}"
-                    break
-                else
-                    echo -e "${RED}证书申请失败，请检查错误信息。脚本将重新开始申请。${NC}"
-                fi
-                ;;
-            5)
-                echo -e "${GREEN}退出脚本。${NC}"
-                exit 0
-                ;;
-            *)
-                echo -e "${RED}无效的选择，请重新输入。${NC}"
-                ;;
-        esac
-    done
-}
-
-# 函数：卸载完整脚本并删除已下载的证书
-uninstall_script() {
-    echo -e "${GREEN}正在卸载脚本并删除已下载的证书，请稍等...${NC}"
-    acme.sh --uninstall
-    apt-get purge -y socat
-    rm -rf "$CERT_PATH"
-    echo -e "${GREEN}脚本已成功卸载并删除证书。${NC}"
-}
-
 # 函数：验证域名格式
 validate_domain_format() {
     domain=$1
@@ -180,7 +121,8 @@ main() {
         echo -e "  [3]卸载 acme.sh 和 socat"
         echo -e "  [4]配置 CF_Api 和 CF_Email"
         echo -e "  [5]卸载脚本并删除证书"
-        echo -e "  [6]退出脚本"
+        echo -e "  [6]帮助"
+        echo -e "  [7]退出脚本"
 
         read -p "请输入选项编号: " menu_choice
 
@@ -203,6 +145,9 @@ main() {
                 uninstall_script
                 ;;
             6)
+                display_help
+                ;;
+            7)
                 echo -e "${GREEN}退出脚本。${NC}"
                 exit 0
                 ;;
