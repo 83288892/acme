@@ -416,3 +416,30 @@ check_cf_email(){
         return 1 # 返回1表示错误
     fi    
 }
+# 脚本的主体部分
+
+# 调用check_root函数检查是否root权限
+check_root
+
+# 处理命令行参数
+while [ -n "$1" ]; do # 循环遍历所有参数
+    case $1 in # 根据参数执行相应的操作
+        -h|--help) show_help; exit 0;; # 如果参数是-h或--help，调用show_help函数显示帮助信息并退出
+        -u|--uninstall) uninstall_all; exit 0;; # 如果参数是-u或--uninstall，调用uninstall_all函数完全卸载脚本和证书并退出
+        -s|--single) apply_single_cert; exit 0;; # 如果参数是-s或--single，调用apply_single_cert函数申请单域名证书并退出
+        -m|--multi) apply_multi_cert; exit 0;; # 如果参数是-m或--multi，调用apply_multi_cert函数申请多域名证书并退出
+        -w|--wildcard) apply_wildcard_cert; exit 0;; # 如果参数是-w或--wildcard，调用apply_wildcard_cert函数申请域名和泛域名证书并退出
+        -c|--cf) set_cf_api; exit 0;; # 如果参数是-c或--cf，调用set_cf_api函数设置Cloudflare API密钥和邮箱地址并退出
+        -p|--path) cert_path=$2; shift;; # 如果参数是-p或--path，将第二个参数作为证书保存路径赋值给cert_path变量，并将参数指针后移一位
+        *) echo -e "${RED}错误：${END}无效的参数，请使用-h或--help查看帮助信息。"; exit 1;; # 如果参数是其他内容，输出错误信息并退出
+    esac
+    shift # 将参数指针后移一位
+done
+
+# 如果没有指定证书保存路径，则使用默认路径/root/cert/
+if [ -z "$cert_path" ]; then # 如果cert_path变量为空
+    cert_path="/root/cert/" # 将默认路径赋值给cert_path变量
+fi
+
+# 调用show_menu函数显示主菜单
+show_menu
