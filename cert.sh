@@ -41,9 +41,15 @@ read -p "泛域名（如果没有直接按回车跳过）: " WILDCARD_DOMAIN
 
 # 申请证书
 if [ -n "$WILDCARD_DOMAIN" ]; then
-    acme.sh --issue --dns dns_cf -d "$DOMAIN" -d "*.$WILDCARD_DOMAIN"
+    if ! acme.sh --issue --dns dns_cf -d "$DOMAIN" -d "*.$WILDCARD_DOMAIN"; then
+        echo -e "${GREEN}错误：证书申请失败。请检查域名和 Cloudflare API 配置后重试。${NC}"
+        exit 1
+    fi
 else
-    acme.sh --issue --dns dns_cf -d "$DOMAIN"
+    if ! acme.sh --issue --dns dns_cf -d "$DOMAIN"; then
+        echo -e "${GREEN}错误：证书申请失败。请检查域名和 Cloudflare API 配置后重试。${NC}"
+        exit 1
+    fi
 fi
 
 # 检查证书路径并创建目录
