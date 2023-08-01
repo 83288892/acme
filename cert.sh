@@ -3,11 +3,15 @@
 # 字体高亮 大绿色
 echo -e "\033[1;32m"
 
-# 检查acme.sh和socat是否安装
-if ! command -v acme.sh >/dev/null 2>&1 || ! command -v socat >/dev/null 2>&1; then
-  # 如果没有安装,提示并安装
-  echo -e "\033[1;33macme.sh或socat未安装,正在安装...\033[0m"
-  apt install -y acme.sh socat
+# 检查工具依赖
+if ! command -v acme.sh >/dev/null 2>&1; then
+  curl https://get.acme.sh | sh
+  export PATH=$PATH:~/.acme.sh 
+fi
+
+if ! command -v socat >/dev/null 2>&1; then
+  git clone https://github.com/socat-1.7.3.2/socat.git
+  cd socat && ./configure && make && make install
 fi
 
 # 输入API密钥和邮箱  
