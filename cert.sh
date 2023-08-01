@@ -56,8 +56,9 @@ ssl_cert_issue_by_cloudflare() {
     LOGI "2. 知晓Cloudflare全局API密钥"
     LOGI "3. 域名已通过Cloudflare进行解析到当前服务器"
     LOGI "4. 该脚本申请证书默认安装路径为/root/cert目录"
-    confirm "我已确认以上内容 [y/n]: " "y"
-    if [ $? -eq 0 ]; then
+    LOGI "按下 y 继续，按下 n 退出"
+    read -p "是否继续 [y/n]: " choice
+    if [[ "${choice}" =~ ^[Yy]$ ]]; then
         install_acme
         if [ $? -ne 0 ]; then
             LOGE "无法安装acme，请检查错误日志"
