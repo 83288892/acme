@@ -13,14 +13,14 @@ fi
 if command -v acme.sh &> /dev/null && command -v socat &> /dev/null; then
     echo -e "${green}acme.sh 和 socat 已经安装，开始申请证书...${reset}"
 else
-    echo -e "acme.sh 或 socat 未安装。"
+    echo -e "${green}acme.sh 或 socat 未安装。${reset}"
 
     # 提示用户选择是否安装缺少的工具
     echo -e "${green}请选择操作：${reset}"
     echo "  1. 安装 acme.sh 和 socat"
     echo "  2. 退出脚本"
 
-    read -p "#? " option
+    read -p "输入： " option
     case $option in
         1)
             apt-get update
@@ -76,4 +76,3 @@ if [ $? -eq 0 ]; then
 else
     echo -e "${green}证书申请失败，请检查您的域名是否正确，并确保您的 DNS 设置已经生效。${reset}"
 fi
-
