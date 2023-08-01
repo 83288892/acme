@@ -22,26 +22,48 @@ install_acme_sh() {
   fi
 }
 
+# 函数：自动安装所有依赖工具
+auto_install_dependencies() {
+  echo "正在安装依赖工具：curl、sudo、socat..."
+  if ! command_exists curl; then
+    if command_exists apt-get; then
+      sudo apt-get update
+      sudo apt-get install -y curl
+    elif command_exists yum; then
+      sudo yum install -y curl
+    else
+      echo -e "${RED}无法自动安装依赖工具。请手动安装：curl、sudo、socat。${NC}"
+      exit 1
+    fi
+  fi
+
+  if ! command_exists sudo || ! command_exists socat; then
+    if command_exists apt-get; then
+      sudo apt-get update
+      sudo apt-get install -y sudo socat
+    elif command_exists yum; then
+      sudo yum install -y sudo socat
+    else
+      echo -e "${RED}无法自动安装依赖工具。请手动安装：sudo、socat。${NC}"
+      exit 1
+    fi
+  fi
+
+  install_acme_sh
+}
+
 # 函数：检查是否安装了所有依赖
 check_dependencies() {
   echo "检查依赖..."
   if ! command_exists curl || ! command_exists sudo || ! command_exists socat || ! command_exists acme.sh; then
     echo -e "${RED}有一些依赖项未安装。${NC}"
-    read -p "是否现在自动安装依赖工具？（y/n）: " auto_install_choice
+    read -p "是否自动安装所有依赖工具？（y/n）: " auto_install_choice
     if [ "$auto_install_choice" = "y" ]; then
       auto_install_dependencies
     else
       exit 1
     fi
   fi
-}
-
-# 函数：自动安装依赖工具
-auto_install_dependencies() {
-  echo "正在自动安装依赖工具..."
-  sudo apt-get update
-  sudo apt-get install -y curl socat
-  install_acme_sh
 }
 
 # 函数：验证域名格式
@@ -177,7 +199,6 @@ display_help() {
   echo "  [4] 卸载脚本并删除证书"
   echo "  [5] 帮助"
   echo "  [6] 退出"
-  echo "  [7] 自动安装依赖工具"
   echo "-------------------------------------"
 }
 
@@ -197,18 +218,20 @@ display_main_menu() {
   echo "[4] 卸载脚本并删除证书"
   echo "[5] 帮助"
   echo "[6] 退出"
-  echo "[7] 自动安装依赖工具"
   echo "-------------------------------------"
 }
 
 # 主脚本逻辑
 main() {
+  check_dependencies
+
   while true; do
     display_main_menu
     read -p "请输入您的选择： " choice
 
     case "$choice" in
       1)
+        echo "正在检查依赖..."
         check_dependencies
         ;;
       2)
@@ -272,9 +295,6 @@ main() {
       6)
         echo "正在退出Cert.sh..."
         exit 0
-        ;;
-      7)
-        auto_install_dependencies
         ;;
       *)
         echo -e "${RED}无效的选择。请重试。${NC}"
