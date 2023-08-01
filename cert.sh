@@ -10,16 +10,16 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# 检查acme是否已安装
+# 检查acme是否已安装，如果未安装则安装acme
 if ! command -v acme.sh &> /dev/null; then
-    echo -e "${GREEN}acme未安装，开始安装 acme.${NC}"
+    echo -e "${GREEN}未检测到acme，开始安装 acme.${NC}"
     apt-get update
     apt-get install -y acme
 fi
 
-# 检查socat是否已安装
+# 检查socat是否已安装，如果未安装则安装socat
 if ! command -v socat &> /dev/null; then
-    echo -e "${GREEN}socat未安装，开始安装 socat.${NC}"
+    echo -e "${GREEN}未检测到socat，开始安装 socat.${NC}"
     apt-get update
     apt-get install -y socat
 fi
