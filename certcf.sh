@@ -159,3 +159,33 @@ handle_choice() {
             ;;
     esac
 }
+# 安装依赖
+install_deps
+
+# 解析命令行参数，如果有-h或--help选项，调用help函数输出帮助信息并退出
+# 如果有-v或--version选项，调用version函数输出版本信息并退出
+# 如果没有参数，继续执行后续逻辑
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help)
+            help
+            exit 0
+            ;;
+        -v|--version)
+            version
+            exit 0
+            ;;
+        *)
+            error "无效的参数，请使用-h或--help查看帮助信息"
+            ;;
+    esac
+    shift # 移动参数位置，处理下一个参数
+done
+
+# 循环显示主菜单，并读取用户输入的选项，调用handle_choice函数处理选项
+while true; do
+    show_menu # 调用show_menu函数显示主菜单
+    read choice # 读取用户输入的选项
+    handle_choice $choice # 调用handle_choice函数处理选项
+done
+
