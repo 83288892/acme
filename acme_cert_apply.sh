@@ -29,6 +29,17 @@ read -p "请输入申请证书的域名: " domain
 # 输出结果
 if [ $? -eq 0 ]; then
     echo "证书申请成功！您现在可以使用您的证书进行 HTTPS 配置。"
+
+    # 检查 /root/cert 目录是否存在，如不存在则创建
+    cert_dir="/root/cert"
+    if [ ! -d "$cert_dir" ]; then
+        mkdir "$cert_dir"
+    fi
+
+    # 复制证书文件到 /root/cert 目录
+    echo "正在复制证书文件到 $cert_dir 目录..."
+    ~/.acme.sh/acme.sh --install-cert -d "$domain" --cert-file "$cert_dir/$domain.cer" --key-file "$cert_dir/$domain.key" --fullchain-file "$cert_dir/fullchain.cer" --reloadcmd "echo 证书复制成功，存放路径：$cert_dir"
+
 else
     echo "证书申请失败，请检查您的域名是否正确，并确保您的 DNS 设置已经生效。"
 fi
