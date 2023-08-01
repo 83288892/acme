@@ -19,16 +19,18 @@ else
 
     # 提示用户选择是否安装缺少的工具
     echo "请选择操作："
-    select option in "1. 安装 acme.sh 和 jq 工具" "2. 退出脚本"; do
+    PS3="请输入： "
+    options=("安装 acme.sh 和 jq 工具" "退出脚本")
+    select option in "${options[@]}"; do
         case $option in
-            "1. 安装 acme.sh 和 jq 工具")
+            "安装 acme.sh 和 jq 工具")
                 apt-get update
                 apt-get install -y socat
                 curl https://get.acme.sh | sh
                 source ~/.bashrc
                 break
                 ;;
-            "2. 退出脚本")
+            "退出脚本")
                 echo -e "${red}已退出脚本。${reset}"
                 exit 1
                 ;;
