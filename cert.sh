@@ -17,7 +17,7 @@ apt-get install -y acme socat
 
 # 输入Cloudflare密钥和邮箱
 echo -e "${GREEN}请输入您的Cloudflare API密钥:${NC}"
-read -s CF_API_KEY
+read CF_API_KEY
 echo -e "${GREEN}请输入您的Cloudflare邮箱:${NC}"
 read CF_EMAIL
 
