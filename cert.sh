@@ -61,7 +61,7 @@ if [ ! -d $cert_path ]; then
 fi
 
 # 复制证书到证书目录
-cp /root/.acme.sh/*.cer $cert_path/
-cp /root/.acme.sh/*.key $cert_path/
+cp $HOME/.acme.sh/*.cer $cert_path/
+cp $HOME/.acme.sh/*.key $cert_path/
 
 echo -e "${GREEN}证书申请成功并已复制到目录 $cert_path${NC}"
