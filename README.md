@@ -4,8 +4,8 @@
 使用方法
 第一次使用，在服务器上运行以下命令，下载脚本并一键执行：
 
-`(bash_)
-curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh && chmod +x cert.sh && ./cert.sh`
+```bash
+curl -o cert.sh https://raw.githubusercontent.com/83288892/acme/main/cert.sh && chmod +x cert.sh && ./cert.sh
 
 再次运行脚本申请证书并复制到指定目录：
 
