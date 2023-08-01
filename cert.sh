@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # 颜色代码
-GREEN='\033[0;32m'
+BRIGHT_GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+
 
 # 检查依赖是否完整
 function check_dependencies() {
