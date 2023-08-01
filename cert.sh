@@ -1,131 +1,202 @@
 #!/bin/bash
+# cret.sh: 一键申请证书的脚本
+# 作者: Bing
+# 日期: 2023-08-01
 
-# 安装依赖函数
-install_dependencies() {
-    echo -e "\e[1;32m正在安装依赖...\e[0m"
-    sudo apt update
-    sudo apt install curl socat -y
+# 设置所有提示输出文本颜色高亮绿色
+GREEN="\033[1;32m"
+RED="\033[1;31m"
+RESET="\033[0m"
+
+# 定义一个函数，用于输出错误信息并退出脚本
+error() {
+    echo -e "${RED}$1${RESET}"
+    exit 1
 }
 
-# 安装 acme.sh 脚本函数
-install_acme_script() {
-    echo -e "\e[1;32m正在安装 acme.sh 脚本...\e[0m"
-    curl https://get.acme.sh | sh
-    # 添加 acme.sh 到系统变量
-    echo 'export PATH="$HOME/.acme.sh:$PATH"' >> ~/.bashrc
-    source ~/.bashrc
+# 定义一个函数，用于输出帮助信息
+help() {
+    echo -e "${GREEN}用法: ./cret.sh [选项]${RESET}"
+    echo -e "${GREEN}选项:${RESET}"
+    echo -e "${GREEN}  -h, --help     显示帮助信息${RESET}"
+    echo -e "${GREEN}  -v, --version  显示脚本版本${RESET}"
 }
 
-# 申请单域名证书函数
-apply_single_domain_certificate() {
-    read -p "请输入邮箱地址: " email
-    read -p "请输入单域名: " domain
+# 定义一个函数，用于输出脚本版本
+version() {
+    echo -e "${GREEN}cret.sh: 一键申请证书的脚本 v1.0${RESET}"
+}
 
-    if [ -z "$email" ] || [ -z "$domain" ]; then
-        echo -e "\e[1;31m错误：邮箱地址和单域名不能为空\e[0m"
-        exit 1
-    fi
-
-    echo -e "\e[1;32m正在申请单域名证书，请稍等...\e[0m"
-    acme.sh --register-account -m "$email"
-    acme.sh --issue -d "$domain" --standalone
-
-    if [ $? -eq 0 ]; then
-        mkdir -p "/root/cert/$domain"
-        acme.sh --install-cert -d "$domain" \
-            --key-file "/root/cert/$domain/private.key" \
-            --fullchain-file "/root/cert/$domain/fullchain.crt"
-        echo -e "\e[1;32m证书申请成功，已保存到 /root/cert/$domain 目录\e[0m"
-    else
-        echo -e "\e[1;31m证书申请失败，请检查错误信息\e[0m"
+# 定义一个函数，用于检查域名是否合法
+check_domain() {
+    # 使用正则表达式验证域名格式
+    if [[ ! $1 =~ ^[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,6}$ ]]; then
+        error "域名格式不正确，请重新输入"
     fi
 }
 
-# 申请多域名证书函数
-apply_multiple_domain_certificate() {
-    read -p "请输入邮箱地址: " email
-    read -p "请输入域名数量: " num_domains
-
-    if [ -z "$email" ] || [ -z "$num_domains" ] || ! [[ "$num_domains" =~ ^[0-9]+$ ]]; then
-        echo -e "\e[1;31m错误：邮箱地址和域名数量不能为空且必须为数字\e[0m"
-        exit 1
+# 定义一个函数，用于安装依赖
+install_deps() {
+    # 检查本地环境是否有curl socat，如果没有执行apt update sudo && apt install curl socat -y安装curl socat
+    echo -e "${GREEN}正在检查依赖...${RESET}"
+    if ! command -v curl &> /dev/null; then
+        echo -e "${GREEN}正在安装curl...${RESET}"
+        apt update sudo && apt install curl -y || error "安装curl失败，请检查网络连接"
     fi
 
+    if ! command -v socat &> /dev/null; then
+        echo -e "${GREEN}正在安装socat...${RESET}"
+        apt update sudo && apt install socat -y || error "安装socat失败，请检查网络连接"
+    fi
+
+    # 安装acme脚本 执行https://get.acme.sh | sh 完成后添加acme.sh到系统变量 
+    echo -e "${GREEN}正在安装acme.sh...${RESET}"
+    curl https://get.acme.sh | sh || error "安装acme.sh失败，请检查网络连接"
+    export PATH=$PATH:~/.acme.sh || error "添加acme.sh到系统变量失败，请检查环境配置"
+}
+
+# 定义一个函数，用于申请单域名证书
+apply_single_cert() {
+    # 提示输入单域名 等待输入单域名后执行~/.acme.sh/acme.sh --register-account -m xxxx@gmail.com 
+    # ~/.acme.sh/acme.sh --issue -d 域名 --standalone 申请成功后创建/root/cert/对应域名的目录/ 复制所有证书文件到/root/cert/对应域名的目录/
+    echo -e "${GREEN}请输入单域名:${RESET}"
+    read domain
+    check_domain $domain # 调用check_domain函数验证域名合法性
+
+    # 设置邮箱地址为xxxx@gmail.com
+    email="xxxx@gmail.com"
+
+    # 注册账号并申请证书
+    echo -e "${GREEN}正在注册账号并申请证书...${RESET}"
+    ~/.acme.sh/acme.sh --register-account -m $email || error "注册账号失败，请检查网络连接"
+    ~/.acme.sh/acme.sh --issue -d $domain --standalone || error "申请证书失败，请检查域名解析"
+
+    # 创建证书目录并复制证书文件
+    echo -e "${GREEN}正在创建证书目录并复制证书文件...${RESET}"
+    mkdir -p /root/cert/$domain || error "创建证书目录失败，请检查权限"
+    cp ~/.acme.sh/$domain/* /root/cert/$domain/ || error "复制证书文件失败，请检查权限"
+
+    # 输出成功提示
+    echo -e "${GREEN}申请单域名证书成功，证书文件保存在/root/cert/$domain/目录下${RESET}"
+}
+
+# 定义一个函数，用于申请多域名证书
+apply_multi_cert() {
+    # 选择此项后 首先输入域名数量 然后根据域名数量 填写对应数量的域名 域名输入完成后 执行~/.acme.sh/acme.sh --register-account -m xxxx@gmail.com 
+    # --issue -d 域名1 -d 域名 -d 域名 --standalone 申请成功后创建/root/cert/对应域名的目录/ 复制所有证书文件到/root/cert/对应域名的目录/
+    echo -e "${GREEN}请输入域名数量:${RESET}"
+    read num
+    # 使用正则表达式验证域名数量为正整数
+    if [[ ! $num =~ ^[1-9][0-9]*$ ]]; then
+        error "域名数量不正确，请重新输入"
+    fi
+
+    # 定义一个空数组，用于存储输入的域名
     domains=()
-    for ((i=1; i<=num_domains; i++)); do
-        read -p "请输入第 $i 个域名: " domain
-        if [ -z "$domain" ]; then
-            echo -e "\e[1;31m错误：域名不能为空\e[0m"
-            exit 1
-        fi
-        domains+=("-d $domain")
+
+    # 根据域名数量，循环读取输入的域名，并调用check_domain函数验证域名合法性
+    for ((i=1; i<=$num; i++)); do
+        echo -e "${GREEN}请输入第$i个域名:${RESET}"
+        read domain
+        check_domain $domain
+        domains+=($domain) # 将域名添加到数组中
     done
 
-    echo -e "\e[1;32m正在申请多域名证书，请稍等...\e[0m"
-    acme.sh --register-account -m "$email"
-    acme.sh --issue "${domains[@]}" --standalone
+    # 设置邮箱地址为xxxx@gmail.com
+    email="xxxx@gmail.com"
 
-    if [ $? -eq 0 ]; then
-        for domain in "${domains[@]}"; do
-            domain=$(echo "$domain" | cut -d' ' -f2) # Extract domain name from '-d domain' format
-            mkdir -p "/root/cert/$domain"
-            acme.sh --install-cert "$domain" \
-                --key-file "/root/cert/$domain/private.key" \
-                --fullchain-file "/root/cert/$domain/fullchain.crt"
-            echo -e "\e[1;32m证书申请成功，已保存到 /root/cert/$domain 目录\e[0m"
-        done
-    else
-        echo -e "\e[1;31m证书申请失败，请检查错误信息\e[0m"
-    fi
+    # 注册账号并申请证书
+    echo -e "${GREEN}正在注册账号并申请证书...${RESET}"
+    ~/.acme.sh/acme.sh --register-account -m $email || error "注册账号失败，请检查网络连接"
+    
+    # 构造acme.sh命令的参数，根据数组中的域名添加-d选项
+    params=""
+    for domain in ${domains[@]}; do
+        params="$params -d $domain"
+    done
+
+    # 执行acme.sh命令，传入参数申请多域名证书
+    ~/.acme.sh/acme.sh --issue $params --standalone || error "申请证书失败，请检查域名解析"
+
+    # 创建证书目录并复制证书文件
+    echo -e "${GREEN}正在创建证书目录并复制证书文件...${RESET}"
+    
+    # 遍历数组中的域名，为每个域名创建目录并复制文件
+    for domain in ${domains[@]}; do
+        mkdir -p /root/cert/$domain || error "创建证书目录失败，请检查权限"
+        cp ~/.acme.sh/$domain/* /root/cert/$domain/ || error "复制证书文件失败，请检查权限"
+        echo -e "${GREEN}申请$domain的证书成功，证书文件保存在/root/cert/$domain/目录下${RESET}"
+    done
+
 }
 
-# 主菜单函数
-main_menu() {
-    echo "欢迎使用证书申请脚本"
-    echo "[1] 申请单域名证书"
-    echo "[2] 申请多域名证书"
-    echo "[3] 返回主菜单"
-    echo "[4] 退出脚本"
+# 定义一个函数，用于弹出主菜单选项
+show_menu() {
+    echo -e "${GREEN}请选择操作:${RESET}"
+    echo -e "${GREEN}[1] 申请单域名证书${RESET}"
+    echo -e "${GREEN}[2] 申请多域名证书${RESET}"
+    echo -e "${GREEN}[3] 返回${RESET}"
+    echo -e "${GREEN}[4] 退出${RESET}"
+}
 
-    read -p "请选择操作： " choice
+# 定义一个函数，用于处理用户输入的选项
+handle_choice() {
+    
+    case $1 in
+        1)  # 调用apply_single_cert函数申请单域名证书
+            apply_single_cert
+            ;;
+        2)  # 调用apply_multi_cert函数申请多域名证书
+            apply_multi_cert
+            ;;
+        3)  # 返回主菜单，重新调调用show_menu函数显示主菜单
 
-    case "$choice" in
-        1) apply_single_domain_certificate ;;
-        2) apply_multiple_domain_certificate ;;
-        3) main_menu ;;
-        4) exit ;;
-        *) echo -e "\e[1;31m错误：无效的选择\e[0m" ;;
+
+
+
+
+
+
+        show_menu 
+            ;;
+        4)  # 退出脚本
+            echo -e "${GREEN}感谢使用，再见！${RESET}"
+            exit 0
+            ;;
+        *)  # 输入无效选项，提示重新输入
+            echo -e "${RED}无效的选项，请重新输入${RESET}"
+            ;;
     esac
 }
 
-# 帮助信息函数
-show_help() {
-    echo "cret.sh 一键申请证书脚本"
-    echo "用法: ./cret.sh [选项]"
-    echo "选项:"
-    echo "    -h, --help       显示帮助信息"
-}
+# 安装依赖
+install_deps
 
-# 主函数
-main() {
-    if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-        show_help
-        exit 0
-    fi
+# 解析命令行参数，如果有-h或--help选项，调用help函数输出帮助信息并退出
+# 如果有-v或--version选项，调用version函数输出版本信息并退出
+# 如果没有参数，继续执行后续逻辑
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help)
+            help
+            exit 0
+            ;;
+        -v|--version)
+            version
+            exit 0
+            ;;
+        *)
+            error "无效的参数，请使用-h或--help查看帮助信息"
+            ;;
+    esac
+    shift # 移动参数位置，处理下一个参数
+done
 
-    # 检查依赖并安装
-    if ! command -v curl &> /dev/null || ! command -v socat &> /dev/null; then
-        install_dependencies
-    fi
+# 循环显示主菜单，并读取用户输入的选项，调用handle_choice函数处理选项
+while true; do
+    show_menu # 调用show_menu函数显示主菜单
+    read choice # 读取用户输入的选项
+    handle_choice $choice # 调用handle_choice函数处理选项
+done
 
-    # 安装 acme.sh 脚本
-    if ! command -v acme.sh &> /dev/null; then
-        install_acme_script
-    fi
-
-    # 运行主菜单
-    main_menu
-}
-
-# 调用主函数
-main "$@"
+        
