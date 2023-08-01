@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ANSI 转义码，用于设置蓝色文本颜色
+BLUE="\033[0;34m"
+NC="\033[0m"  # 重置文本颜色
+
 # 安装 acme.sh 和 jq 工具
 echo "正在安装 acme.sh 和 jq 工具..."
 apt-get update
@@ -8,8 +12,8 @@ curl https://get.acme.sh | sh
 source ~/.bashrc
 
 # 获取 Cloudflare API 密钥和邮箱
-read -p "请输入 Cloudflare API 密钥: " cf_api_key
-read -p "请输入 Cloudflare 邮箱: " cf_email
+read -p "请输入 ${BLUE}Cloudflare API 密钥${NC}: " cf_api_key
+read -p "请输入 ${BLUE}Cloudflare 邮箱${NC}: " cf_email
 
 # 验证密钥
 echo "正在验证密钥..."
@@ -21,7 +25,7 @@ else
 fi
 
 # 获取申请证书的域名
-read -p "请输入申请证书的域名: " domain
+read -p "请输入 ${BLUE}申请证书的域名${NC}: " domain
 
 # 执行申请证书命令
 ~/.acme.sh/acme.sh --issue --dns dns_cf -d "$domain" -d "*.$domain" --dns dns_cf --debug 2> /dev/null
