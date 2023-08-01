@@ -1,5 +1,4 @@
-markdown
-Copy code
+
 # 一键运行证书申请脚本
 
 这个脚本用于快速申请 SSL 证书，并将证书文件复制到指定目录。
@@ -33,8 +32,7 @@ Copy code
 
 © 完美
 
-go
-Copy code
+
 
 
 
