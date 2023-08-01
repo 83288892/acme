@@ -4,61 +4,127 @@
 GREEN='\033[1;32m'
 NC='\033[0m'
 
-# 检查是否已经安装 acme 和 socat，如果没有则安装
-if ! command -v acme.sh &>/dev/null || ! command -v socat &>/dev/null; then
-    echo -e "${GREEN}正在安装 acme.sh 和 socat...${NC}"
-    if [ -x "$(command -v apt-get)" ]; then
-        sudo apt-get update
-        sudo apt-get install -y acme.sh socat
-    elif [ -x "$(command -v yum)" ]; then
-        sudo yum install -y epel-release
-        sudo yum install -y acme.sh socat
+LOGD() {
+    echo -e "${GREEN} $1 ${NC}"
+}
+
+LOGI() {
+    echo -e "${GREEN} $1 ${NC}"
+}
+
+LOGE() {
+    echo -e "${GREEN} $1 ${NC}"
+}
+
+# 检查acme脚本是否已安装，如果未安装，则进行安装
+install_acme() {
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        cd ~
+        LOGI "开始安装acme脚本..."
+        curl https://get.acme.sh | sh
+        if [ $? -ne 0 ]; then
+            LOGE "acme安装失败"
+            return 1
+        else
+            LOGI "acme安装成功"
+        fi
     else
-        echo -e "${GREEN}错误：无法找到适合的包管理器来安装 acme.sh 和 socat。请手动安装后再试。${NC}"
-        exit 1
+        LOGI "检测到已安装acme脚本，跳过安装步骤"
     fi
-fi
+    return 0
+}
 
-# 获取 Cloudflare API 密钥和邮箱
-echo -e "${GREEN}请输入 Cloudflare API 密钥和邮箱：${NC}"
-read -p "Cloudflare API 密钥: " CF_KEY
-read -p "Cloudflare 邮箱: " CF_EMAIL
-
-# 配置 Cloudflare API 密钥和邮箱
-acme.sh --set-default-ca --server letsencrypt
-acme.sh --update-account-info --accountemail "$CF_EMAIL" --accountkey "$CF_KEY"
-
-# 验证 Cloudflare API 密钥和邮箱是否有效
-if ! acme.sh --register-account --accountemail "$CF_EMAIL" --accountkey "$CF_KEY"; then
-    echo -e "${GREEN}错误：Cloudflare API 密钥和邮箱验证失败。请确认信息后重试。${NC}"
-    exit 1
-fi
-
-# 输入域名和泛域名，申请证书
-echo -e "${GREEN}请输入域名和泛域名（如果没有泛域名，直接按回车跳过）：${NC}"
-read -p "域名: " DOMAIN
-read -p "泛域名（如果没有直接按回车跳过）: " WILDCARD_DOMAIN
-
-# 申请证书
-if [ -n "$WILDCARD_DOMAIN" ]; then
-    if ! acme.sh --issue --dns dns_cf -d "$DOMAIN" -d "*.$WILDCARD_DOMAIN"; then
-        echo -e "${GREEN}错误：证书申请失败。请检查域名和 Cloudflare API 配置后重试。${NC}"
+# 检查是否符合免费域名申请条件，比如域名是否为免费域名，是否已经存在相同域名的证书等
+check_free_domain() {
+    local domain="$1"
+    local certInfo=$(~/.acme.sh/acme.sh --list | grep "${domain}" | wc -l)
+    if [ ${certInfo} -ne 0 ]; then
+        LOGE "域名合法性校验失败，当前环境已有对应域名证书，不可重复申请，当前证书详情:"
+        LOGI "$(~/.acme.sh/acme.sh --list)"
         exit 1
+    else
+        LOGI "域名合法性校验通过..."
     fi
-else
-    if ! acme.sh --issue --dns dns_cf -d "$DOMAIN"; then
-        echo -e "${GREEN}错误：证书申请失败。请检查域名和 Cloudflare API 配置后重试。${NC}"
-        exit 1
+}
+
+# 免费域名的证书签发
+ssl_cert_issue_by_cloudflare() {
+    echo -e ""
+    LOGD "******使用说明******"
+    LOGI "该脚本将使用Acme脚本申请证书，使用时需保证:"
+    LOGI "1. 知晓Cloudflare注册邮箱"
+    LOGI "2. 知晓Cloudflare全局API密钥"
+    LOGI "3. 域名已通过Cloudflare进行解析到当前服务器"
+    LOGI "4. 该脚本申请证书默认安装路径为/root/cert目录"
+    confirm "我已确认以上内容 [y/n]: " "y"
+    if [ $? -eq 0 ]; then
+        install_acme
+        if [ $? -ne 0 ]; then
+            LOGE "无法安装acme，请检查错误日志"
+            exit 1
+        fi
+        CF_Domain=""
+        CF_GlobalKey=""
+        CF_AccountEmail=""
+        certPath=/root/cert
+        if [ ! -d "$certPath" ]; then
+            mkdir $certPath
+        fi
+        LOGD "请设置域名:"
+        read -p "输入你的域名: " CF_Domain
+        LOGD "你的域名设置为:${CF_Domain}，正在进行域名合法性校验..."
+        check_free_domain "${CF_Domain}"
+        LOGD "请设置API密钥:"
+        read -p "输入你的API密钥: " CF_GlobalKey
+        LOGD "你的API密钥为:${CF_GlobalKey}"
+        LOGD "请设置注册邮箱:"
+        read -p "输入你的注册邮箱: " CF_AccountEmail
+        LOGD "你的注册邮箱为:${CF_AccountEmail}"
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+        if [ $? -ne 0 ]; then
+            LOGE "修改默认CA为Let's Encrypt失败，脚本退出"
+            exit 1
+        fi
+        export CF_Key="${CF_GlobalKey}"
+        export CF_Email=${CF_AccountEmail}
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log
+        if [ $? -ne 0 ]; then
+            LOGE "证书签发失败，脚本退出"
+            rm -rf ~/.acme.sh/${CF_Domain}
+            exit 1
+        else
+            LOGI "证书签发成功，安装中..."
+        fi
+        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
+            --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
+            --fullchain-file /root/cert/fullchain.cer
+        if [ $? -ne 0 ]; then
+            LOGE "证书安装失败，脚本退出"
+            rm -rf ~/.acme.sh/${CF_Domain}
+            exit 1
+        else
+            LOGI "证书安装成功，开启自动更新..."
+        fi
+        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+        if [ $? -ne 0 ]; then
+            LOGE "自动更新设置失败，脚本退出"
+            ls -lah cert
+            chmod 755 $certPath
+            exit 1
+        else
+            LOGI "证书已安装且已开启自动更新，具体信息如下"
+            ls -lah cert
+            chmod 755 $certPath
+        fi
+    else
+        LOGI "用户取消执行，脚本退出..."
     fi
-fi
+}
 
-# 检查证书路径并创建目录
-CERT_DIR="/root/cert"
-if [ ! -d "$CERT_DIR" ]; then
-    mkdir "$CERT_DIR"
-fi
+# 入口函数
+main() {
+    ssl_cert_issue_by_cloudflare
+}
 
-# 复制证书到 CERT_DIR 目录
-acme.sh --installcert -d "$DOMAIN" --key-file "$CERT_DIR/private.key" --fullchain-file "$CERT_DIR/fullchain.crt"
-
-echo -e "${GREEN}证书申请成功，已保存至 $CERT_DIR 目录。${NC}"
+# 执行脚本
+main
