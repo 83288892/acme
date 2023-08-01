@@ -28,6 +28,11 @@ input_cloudflare_api() {
     echo -e "${GREEN}请输入 Cloudflare API 密钥和电子邮件：${NC}"
     read -p "Cloudflare API 密钥: " CF_API_KEY
     read -p "Cloudflare 邮箱: " CF_EMAIL
+
+    if [ -z "$CF_API_KEY" ] || [ -z "$CF_EMAIL" ]; then
+        echo -e "${RED}API 密钥和邮箱不能为空，请重新输入。${NC}"
+        return 1
+    fi
 }
 
 # 函数：验证 Cloudflare API 密钥和邮箱
@@ -87,75 +92,95 @@ display_help() {
 # 自动加载 acme.sh 路径
 export PATH="$HOME/.acme.sh:$PATH"
 
-# 主函数
-main() {
-    while [ $# -gt 0 ]; do
-        case $1 in
-            -h|--help)
-                display_help
-                exit 0
-                ;;
-            -p|--path)
-                if [ -z "$2" ]; then
-                    echo -e "${RED}未指定证书保存路径。${NC}"
-                    exit 1
-                else
-                    CERT_PATH="$2"
-                    shift
-                fi
-                ;;
-            *)
-                echo -e "${RED}无效的选项：$1。${NC}"
-                exit 1
-                ;;
-        esac
-        shift
-    done
-
-    display_intro
-
+# 函数：选择并申请证书
+apply_certificate() {
     while true; do
-        echo -e "${GREEN}请选择操作：${NC}"
-        echo -e "  [1]安装依赖 acme.sh 和 socat"
-        echo -e "  [2]申请证书"
-        echo -e "  [3]卸载 acme.sh 和 socat"
-        echo -e "  [4]配置 CF_Api 和 CF_Email"
-        echo -e "  [5]卸载脚本并删除证书"
-        echo -e "  [6]帮助"
-        echo -e "  [7]退出脚本"
+        echo -e "${GREEN}请选择需要申请的域名类型：${NC}"
+        echo -e "  [1]主域名"
+        echo -e "  [2]单域名"
+        echo -e "  [3]泛域名"
+        echo -e "  [4]返回主菜单"
 
-        read -p "请输入选项编号: " menu_choice
+        read -p "请输入选项编号: " domain_type
 
-        case $menu_choice in
+        case $domain_type in
             1)
-                install_dependencies
+                read -p "请输入主域名: " main_domain
+                validate_domain_format "$main_domain" || continue
                 ;;
             2)
-                create_cert_directory
-                apply_certificate
+                read -p "请输入单域名: " single_domain
+                validate_domain_format "$single_domain" || continue
                 ;;
             3)
-                uninstall_acme
+                read -p "请输入泛域名: " wildcard_domain
+                validate_domain_format "$wildcard_domain" || continue
                 ;;
             4)
-                input_cloudflare_api
-                verify_cloudflare_api
-                ;;
-            5)
-                uninstall_script
-                ;;
-            6)
-                display_help
-                ;;
-            7)
-                echo -e "${GREEN}退出脚本。${NC}"
-                exit 0
+                echo -e "${GREEN}返回主菜单。${NC}"
+                return
                 ;;
             *)
                 echo -e "${RED}无效的选择，请重新输入。${NC}"
                 ;;
         esac
+
+        # 申请证书
+        acme.sh --issue --dns dns_cf -d ${main_domain:-${single_domain:-$wildcard_domain}} --key-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.key" --fullchain-file "$CERT_PATH/${main_domain:-${single_domain:-$wildcard_domain}}.cer" --keylength ec-256 --force
+
+        if [ $? -eq 0 ]; then
+            copy_certificate
+            echo -e "${GREEN}证书申请成功并已复制到目录 $CERT_PATH${NC}"
+            break
+        else
+            echo -e "${RED}证书申请失败，请检查错误信息。脚本将重新开始申请。${NC}"
+        fi
     done
 }
 
-main "$@"
+# 函数：卸载脚本并删除证书
+uninstall_script() {
+    echo -e "${GREEN}正在卸载脚本并删除证书，请稍等...${NC}"
+    uninstall_acme
+    rm -rf "$CERT_PATH"
+    echo -e "${GREEN}脚本卸载完成，已删除证书。${NC}"
+}
+
+# 主菜单
+while true; do
+    echo -e "${GREEN}请选择操作：${NC}"
+    echo -e "  [1]申请证书"
+    echo -e "  [2]卸载 acme.sh 和 socat"
+    echo -e "  [3]卸载脚本并删除证书"
+    echo -e "  [4]配置 CF_Api 和 CF_Email"
+    echo -e "  [5]显示帮助"
+    echo -e "  [6]退出脚本"
+
+    read -p "请输入选项编号: " option
+
+    case $option in
+        1)
+            apply_certificate
+            ;;
+        2)
+            uninstall_acme
+            ;;
+        3)
+            uninstall_script
+            ;;
+        4)
+            input_cloudflare_api
+            verify_cloudflare_api
+            ;;
+        5)
+            display_help
+            ;;
+        6)
+            echo -e "${GREEN}退出脚本。${NC}"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}无效的选择，请重新输入。${NC}"
+            ;;
+    esac
+done
